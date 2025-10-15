@@ -1,0 +1,22 @@
+{
+  "originalFile": "1749123005505-software architecture and design.txt",
+  "totalChunks": 3,
+  "chunks": [
+    {
+      "index": 0,
+      "path": "C:\\Users\\KRITEX\\Documents\\development\\projects\\flashcard-saas\\public\\chunks\\1749123005505-software architecture and design\\chunk_0.txt",
+      "size": 14844
+    },
+    {
+      "index": 1,
+      "path": "C:\\Users\\KRITEX\\Documents\\development\\projects\\flashcard-saas\\public\\chunks\\1749123005505-software architecture and design\\chunk_1.txt",
+      "size": 13528
+    },
+    {
+      "index": 2,
+      "path": "C:\\Users\\KRITEX\\Documents\\development\\projects\\flashcard-saas\\public\\chunks\\1749123005505-software architecture and design\\chunk_2.txt",
+      "size": 13955
+    }
+  ],
+  "timestamp": "2025-06-05T11:30:06.506Z"
+}

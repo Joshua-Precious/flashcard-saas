@@ -1,0 +1,86 @@
+
+
+
+
+
+
+
+
+Summary
+
+Joshua Ishiegbu
+
+pcjosh00@gmail.com | +2348105336930 | Lagos, Nigeria www.linkedin.com/in/joshua-ishiegbu-5a3a46237 | https://github.com/Joshua-Precious |
+
+https://joshua-ishiegbu.vercel.app/
+
+
+
+Motivated and ambitious software engineer with a strong desire to continuously expand my technical skills and knowledge. With a solid foundation in programming languages such as JavaScript and Python among a few to mentions, I am driven by my curiosity and passion for problem-solving. I thrive in fast-paced environments where innovation and learning are valued. My ability to quickly grasp new concepts and technologies, combined with my dedication to staying up-to-date with the latest industry trends, allows me to contribute effectively to collaborative development teams.
+
+
+
+EDUCATION
+
+Mountain Top University, Makogi Oba, Nigeria Bachelor of Science in B.Sc. in Software Engineering Expected September 2025
+
+
+
+EXPERIENCE
+
+Headstarter AI	July 2024 - September 2024
+
+Software Engineering Fellow
+
+Contributed to the design and implementation of 5 AI-driven projects with my team members, fostering teamwork and communication in a fast-paced engineering environment
+
+Honed my skills in tools, technology and frameworks such as Next,js, OpenAI APIs, Vercel, among a few to mention, enhancing my proficiency in AI development and deployment
+
+
+
+Agusto & Co., Lagos, Nigeria	April 2024 - September 2024
+
+Software Developer  Intern
+
+Continuously learned and applied new web development and mobile development tools, libraries and frameworks to enhance product capabilities
+
+Executed end to end testing and validation of in-house developed software products prior to successful launches
+
+Provided technical support
+
+Developed features integrating AI-powerd APIs to enhance product capabilities
+
+Personal Projects
+
+Jay AI-CHAT
+
+Designed and built a conversational AI chatbot assistant using nextjs and meta llama https://jay-ai-omega.vercel.app/
+
+
+
+Fin-Sight-Pro
+
+Developed AI-powered Credit Risk Assessment Tool improving accuracy and efficiency in lending decisions https://github.com/Joshua-Precious
+
+
+
+Inventory Management
+
+A tracker app that helps you track your inventory. It was built using the nextJs framework with firebase serving as its database
+
+https://joshua-ishiegbu.vercel.app/
+
+
+
+Skills
+
+Proficient in programming languages such as JavaScript, Python
+
+Experienced in web development using frameworks like React, Next.Js
+
+Working with APIs
+
+Execute end-to-end testing, attention to detail, quality assurance, teamwork
+
+Problem solving, analytical thinking, Version Control - Git, Playwright
+

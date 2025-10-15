@@ -1,0 +1,22 @@
+This is a sample DOCX file for testing.
+
+Testing DOCX conversion with some formatted text:
+
+Heading 1: Introduction
+This is a paragraph with some basic formatting. It includes text that should be converted properly.
+
+Heading 2: Features
+- Bullet point 1
+- Bullet point 2
+- Bullet point 3
+
+1. Numbered list item 1
+2. Numbered list item 2
+3. Numbered list item 3
+
+Table of contents:
+1. Introduction
+2. Features
+3. Conclusion
+
+This is the end of the test document. 

@@ -1,0 +1,8 @@
+{
+  "name": "flashcard-saas-tests",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node upload.test.js"
+  }
+} 
