@@ -1,17 +1,20 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import logger from '@/lib/logger';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, collection, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, writeBatch } from 'firebase/firestore';
+
+interface ChunkInfo {
+    index: number;
+    size: number;
+}
 
 // Function to split text into chunks
-function splitIntoChunks(text, maxChunkSize = 15000) {
-    // Split by paragraphs first
+function splitIntoChunks(text: string, maxChunkSize = 15000): string[] {
     const paragraphs = text.split(/\n\s*\n/);
-    const chunks = [];
+    const chunks: string[] = [];
     let currentChunk = '';
 
     for (const paragraph of paragraphs) {
-        // If adding this paragraph would exceed maxChunkSize, start a new chunk
         if ((currentChunk + paragraph).length > maxChunkSize && currentChunk.length > 0) {
             chunks.push(currentChunk.trim());
             currentChunk = '';
@@ -19,7 +22,6 @@ function splitIntoChunks(text, maxChunkSize = 15000) {
         currentChunk += paragraph + '\n\n';
     }
 
-    // Add the last chunk if it's not empty
     if (currentChunk.trim()) {
         chunks.push(currentChunk.trim());
     }
@@ -27,9 +29,9 @@ function splitIntoChunks(text, maxChunkSize = 15000) {
     return chunks;
 }
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
     try {
-        const { docId } = await request.json();
+        const { docId } = await request.json() as { docId: string };
 
         if (!docId) {
             return NextResponse.json(
@@ -39,7 +41,6 @@ export async function POST(request) {
         }
 
         try {
-            // Read the uploaded file content from Firestore
             logger.info({ docId }, 'Reading file from Firestore');
             const uploadSnap = await getDoc(doc(db, 'uploads', docId));
 
@@ -51,7 +52,7 @@ export async function POST(request) {
             }
 
             const uploadData = uploadSnap.data();
-            const extractedText = uploadData.content;
+            const extractedText = uploadData.content as string;
 
             if (!extractedText || extractedText.trim().length === 0) {
                 throw new Error('No text could be extracted from the file');
@@ -59,16 +60,14 @@ export async function POST(request) {
 
             logger.info('Text extracted successfully, creating chunks');
 
-            // Split content into chunks
             const chunks = splitIntoChunks(extractedText);
 
             if (chunks.length === 0) {
                 throw new Error('No valid text chunks could be created');
             }
 
-            // Store chunks in Firestore using a batch write
             const batch = writeBatch(db);
-            const chunkInfo = [];
+            const chunkInfo: ChunkInfo[] = [];
 
             for (let i = 0; i < chunks.length; i++) {
                 const chunkRef = doc(db, 'uploads', docId, 'chunks', `chunk_${i}`);
@@ -80,7 +79,6 @@ export async function POST(request) {
                 chunkInfo.push({ index: i, size: chunks[i].length });
             }
 
-            // Also store metadata on the parent document
             const uploadRef = doc(db, 'uploads', docId);
             batch.update(uploadRef, {
                 totalChunks: chunks.length,
@@ -104,21 +102,23 @@ export async function POST(request) {
             });
 
         } catch (error) {
-            logger.error({ err: error }, 'Error processing file');
+            const err = error as Error;
+            logger.error({ err }, 'Error processing file');
             return NextResponse.json(
-                { 
+                {
                     error: "Error processing file.",
-                    details: error.message
+                    details: err.message,
                 },
                 { status: 500 }
             );
         }
 
     } catch (error) {
-        logger.error({ err: error }, 'Error in extract route');
+        const err = error as Error;
+        logger.error({ err }, 'Error in extract route');
         return NextResponse.json(
             { error: "Error processing request." },
             { status: 500 }
         );
     }
-} 
+}

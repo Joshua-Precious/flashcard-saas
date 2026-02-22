@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import path from 'path';
 import mammoth from 'mammoth';
 import logger from '@/lib/logger';
@@ -7,29 +7,30 @@ import { doc, setDoc } from 'firebase/firestore';
 
 // Allowed MIME types
 const ALLOWED_TYPES = [
-    'application/msword',                                        // DOC
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // DOCX
-    'application/vnd.oasis.opendocument.text',                  // ODT
-    'text/plain',                                               // TXT
-    'application/rtf'                                           // RTF
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.oasis.opendocument.text',
+    'text/plain',
+    'application/rtf',
 ];
 
-async function convertDOCXToText(buffer) {
+async function convertDOCXToText(buffer: Buffer): Promise<string> {
     try {
         logger.info('Converting DOCX to text');
         const result = await mammoth.extractRawText({ buffer });
         logger.info('DOCX conversion successful');
         return result.value;
     } catch (error) {
-        logger.error({ err: error }, 'Error converting DOCX');
-        throw new Error(`Failed to convert DOCX: ${error.message}`);
+        const err = error as Error;
+        logger.error({ err }, 'Error converting DOCX');
+        throw new Error(`Failed to convert DOCX: ${err.message}`);
     }
 }
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
-        const file = formData.get('file');
+        const file = formData.get('file') as File | null;
 
         if (!file) {
             return NextResponse.json(
@@ -38,12 +39,11 @@ export async function POST(request) {
             );
         }
 
-        // Validate file type
         if (!ALLOWED_TYPES.includes(file.type)) {
             return NextResponse.json(
-                { 
+                {
                     error: "Invalid file type. Only document files are allowed.",
-                    allowedTypes: ALLOWED_TYPES
+                    allowedTypes: ALLOWED_TYPES,
                 },
                 { status: 400 }
             );
@@ -52,35 +52,32 @@ export async function POST(request) {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        // Create unique document ID
         const timestamp = Date.now();
         const originalName = file.name;
         const docId = `${timestamp}-${path.parse(originalName).name}`;
 
-        let fileContent;
+        let fileContent: string;
 
-        // Handle different file types
         if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
             try {
                 logger.info({ originalName }, 'Converting DOCX to text');
                 fileContent = await convertDOCXToText(buffer);
                 logger.info('DOCX converted successfully');
             } catch (error) {
-                logger.error({ err: error }, 'DOCX conversion error');
+                const err = error as Error;
+                logger.error({ err }, 'DOCX conversion error');
                 return NextResponse.json(
-                    { 
+                    {
                         error: "Failed to convert DOCX file",
-                        details: error.message 
+                        details: err.message,
                     },
                     { status: 500 }
                 );
             }
         } else {
-            // For text files, use the content directly
             fileContent = buffer.toString('utf-8');
         }
 
-        // Store the file content in Firestore
         await setDoc(doc(db, 'uploads', docId), {
             originalName,
             content: fileContent,
@@ -91,17 +88,18 @@ export async function POST(request) {
 
         logger.info({ docId, originalName }, 'File stored in Firestore');
 
-        return NextResponse.json({ 
+        return NextResponse.json({
             message: "File uploaded successfully",
             docId,
             originalName,
         });
-        
+
     } catch (error) {
-        logger.error({ err: error }, 'Error uploading file');
+        const err = error as Error;
+        logger.error({ err }, 'Error uploading file');
         return NextResponse.json(
             { error: "Error uploading file." },
             { status: 500 }
         );
     }
-} 
+}

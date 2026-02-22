@@ -1,10 +1,18 @@
-import { NextResponse } from 'next/server'
-import logger from '@/lib/logger'
-import { db } from '@/lib/firebase'
-import { doc, getDoc } from 'firebase/firestore'
+import { NextResponse, type NextRequest } from 'next/server';
+import logger from '@/lib/logger';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
-//For the system prompt, see how we can modify it to tell it to go through a pdf and create flashcards from it.
-// I need a system prompt for study buddy It's an AI tool for school students that allows you to upload your PDF's and it generates a summary of the PDF as well as a quiz for you.
+interface Flashcard {
+    front: string;
+    back: string;
+}
+
+interface GenerationResult {
+    flashcards: Flashcard[];
+    summary: string;
+}
+
 const systemPrompt = `You are a highly efficient quiz flashcard creator specialized in educational content. Your task is to:
 
 1. Create a concise but comprehensive summary that:
@@ -45,28 +53,23 @@ CRITICAL FORMATTING RULES:
 10. Keep both flashcards and summary concise and clear
 11. Use "- " for bullet points in summary`;
 
-// Function to split text into chunks
-function splitIntoChunks(text, maxChunkSize = 100000) {
-    // Split by paragraphs first
+function splitIntoChunks(text: string, maxChunkSize = 100000): string[] {
     const paragraphs = text.split(/\n\s*\n/);
-    const chunks = [];
+    const chunks: string[] = [];
     let currentChunk = '';
     let currentTokenCount = 0;
-    
-    // Rough estimation of tokens (1 token ≈ 4 characters)
-    const estimateTokens = (text) => Math.ceil(text.length / 4);
+
+    const estimateTokens = (t: string): number => Math.ceil(t.length / 4);
 
     for (const paragraph of paragraphs) {
         const paragraphTokens = estimateTokens(paragraph);
-        
-        // If adding this paragraph would exceed maxChunkSize, start a new chunk
+
         if (currentTokenCount + paragraphTokens > maxChunkSize && currentChunk.length > 0) {
             chunks.push(currentChunk.trim());
             currentChunk = '';
             currentTokenCount = 0;
         }
-        
-        // If a single paragraph is too large, split it into sentences
+
         if (paragraphTokens > maxChunkSize) {
             const sentences = paragraph.match(/[^.!?]+[.!?]+/g) || [paragraph];
             for (const sentence of sentences) {
@@ -85,12 +88,10 @@ function splitIntoChunks(text, maxChunkSize = 100000) {
         }
     }
 
-    // Add the last chunk if it's not empty
     if (currentChunk.trim()) {
         chunks.push(currentChunk.trim());
     }
 
-    // Log chunk sizes for debugging
     chunks.forEach((chunk, i) => {
         logger.info({ chunk: i, estimatedTokens: estimateTokens(chunk) }, 'Chunk token estimate');
     });
@@ -98,102 +99,84 @@ function splitIntoChunks(text, maxChunkSize = 100000) {
     return chunks;
 }
 
-// Function to attempt to clean and parse JSON from the response
-function cleanAndParseJSON(text) {
-    // Try to find JSON-like structure in the text
+function cleanAndParseJSON(text: string): GenerationResult {
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
         throw new Error('No JSON structure found in response');
     }
 
     let jsonStr = jsonMatch[0];
-    
-    // Remove any markdown code block markers and surrounding whitespace
     jsonStr = jsonStr.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    
+
     try {
-        // Try to parse the JSON directly first
-        return JSON.parse(jsonStr);
-    } catch (e) {
+        return JSON.parse(jsonStr) as GenerationResult;
+    } catch {
         logger.warn('Initial JSON parse failed, attempting to fix JSON');
-        
-        // Replace special characters with ASCII alternatives
+
         jsonStr = jsonStr
             .replace(/[∞]/g, 'infinity')
             .replace(/[≥]/g, '>=')
             .replace(/[≤]/g, '<=')
             .replace(/[−]/g, '-')
-            .replace(/[""]/g, '"')
-            .replace(/['']/g, "'");
-        
-        // Ensure property names are properly quoted
+            .replace(/[\u201C\u201D]/g, '"')
+            .replace(/[\u2018\u2019]/g, "'");
+
         jsonStr = jsonStr.replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3');
-        
-        // Fix potential trailing commas in arrays and objects
         jsonStr = jsonStr.replace(/,(\s*[}\]])/g, '$1');
-        
-        // Fix potential missing quotes around string values
         jsonStr = jsonStr.replace(/:\s*([^"{}\[\],\s][^,}\]]*[^"{}\[\],\s])\s*([,}\]])/g, ':"$1"$2');
-        
-        // Remove any invalid control characters
         jsonStr = jsonStr.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
 
-        // Properly escape quotes within string values
-        jsonStr = jsonStr.replace(/(?<!\\)"([^"]*)"(?=\s*[,}\]])/g, (match, p1) => {
+        jsonStr = jsonStr.replace(/(?<!\\)"([^"]*)"(?=\s*[,}\]])/g, (_match, p1: string) => {
             return `"${p1.replace(/"/g, '\\"')}"`;
         });
 
         try {
-            // Try parsing with the fixed JSON
-            return JSON.parse(jsonStr);
-        } catch (e) {
+            return JSON.parse(jsonStr) as GenerationResult;
+        } catch {
             logger.warn('Second parse attempt failed, trying to extract valid parts');
-            
+
             try {
-                // Extract flashcards array content
                 const flashcardsMatch = jsonStr.match(/"flashcards"\s*:\s*\[([\s\S]*?)\]/);
                 const summaryMatch = jsonStr.match(/"summary"\s*:\s*"([^"]*?)"/);
-                
+
                 if (flashcardsMatch) {
-                    // Process each card to ensure valid JSON
                     const cardMatches = [...flashcardsMatch[1].matchAll(/\{([^{}]*)\}/g)];
                     const validCards = cardMatches
                         .map(match => {
                             try {
                                 const cardStr = match[0].replace(/,\s*$/, '');
-                                const card = JSON.parse(cardStr);
+                                const card = JSON.parse(cardStr) as { front?: string; back?: string };
                                 if (card.front && card.back) {
                                     return {
                                         front: String(card.front).trim(),
-                                        back: String(card.back).trim()
+                                        back: String(card.back).trim(),
                                     };
                                 }
                                 return null;
-                            } catch (err) {
+                            } catch {
                                 return null;
                             }
                         })
-                        .filter(card => card !== null);
+                        .filter((card): card is Flashcard => card !== null);
 
                     return {
                         flashcards: validCards,
-                        summary: summaryMatch ? summaryMatch[1] : "- Content parsing error occurred.\n- Please try again."
+                        summary: summaryMatch ? summaryMatch[1] : "- Content parsing error occurred.\n- Please try again.",
                     };
                 }
             } catch (err) {
                 logger.error({ err }, 'Failed to extract valid parts');
             }
 
-            // Last resort: return minimal valid structure
             return {
                 flashcards: [],
-                summary: "- Failed to parse response.\n- Please try again."
+                summary: "- Failed to parse response.\n- Please try again.",
             };
         }
     }
 }
 
-async function makeCompletion(content) {
+async function makeCompletion(content: string): Promise<GenerationResult> {
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -204,25 +187,25 @@ async function makeCompletion(content) {
                 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
                 'Content-Type': 'application/json',
                 'HTTP-Referer': process.env.APP_URL || 'http://localhost:3000',
-                'X-Title': 'Flashcard Study Buddy'
+                'X-Title': 'Flashcard Study Buddy',
             },
             body: JSON.stringify({
                 model: 'deepseek/deepseek-r1-0528:free',
                 messages: [
                     {
                         role: 'system',
-                        content: systemPrompt
+                        content: systemPrompt,
                     },
                     {
                         role: 'user',
-                        content: `Create 10 flashcards and a concise summary from this text. YOUR RESPONSE MUST BE PURE JSON WITH NO OTHER TEXT:\n\n${content}`
-                    }
+                        content: `Create 10 flashcards and a concise summary from this text. YOUR RESPONSE MUST BE PURE JSON WITH NO OTHER TEXT:\n\n${content}`,
+                    },
                 ],
                 temperature: 0.1,
                 max_tokens: 2000,
-                timeout: 25000
+                timeout: 25000,
             }),
-            signal: controller.signal
+            signal: controller.signal,
         });
 
         clearTimeout(timeoutId);
@@ -230,11 +213,14 @@ async function makeCompletion(content) {
         const responseText = await response.text();
         logger.debug({ responseText }, 'Raw API response');
 
-        let responseData;
+        let responseData: {
+            error?: { message?: string };
+            choices?: { message?: { content?: string } }[];
+        };
         try {
             responseData = JSON.parse(responseText);
-        } catch (e) {
-            logger.error({ err: e }, 'Failed to parse API response');
+        } catch {
+            logger.error('Failed to parse API response');
             throw new Error('Invalid JSON response from API');
         }
 
@@ -250,10 +236,10 @@ async function makeCompletion(content) {
         const llmResponse = responseData.choices[0].message.content.trim();
         logger.debug({ llmResponse }, 'LLM response content');
 
-        let parsedResponse;
+        let parsedResponse: GenerationResult;
         try {
-            parsedResponse = JSON.parse(llmResponse);
-        } catch (e) {
+            parsedResponse = JSON.parse(llmResponse) as GenerationResult;
+        } catch {
             logger.warn('Direct parsing failed, attempting to clean response');
             parsedResponse = cleanAndParseJSON(llmResponse);
         }
@@ -268,14 +254,13 @@ async function makeCompletion(content) {
         }
 
         const validFlashcards = parsedResponse.flashcards
-            .filter(card => card && typeof card === 'object')
+            .filter((card): card is Flashcard => card != null && typeof card === 'object')
             .map(card => ({
                 front: String(card.front || '').trim(),
-                back: String(card.back || '').trim()
+                back: String(card.back || '').trim(),
             }))
             .filter(card => card.front && card.back);
 
-        // Clean and validate summary
         let summary = String(parsedResponse.summary || '').trim();
         if (!summary) {
             summary = "- No summary available.";
@@ -283,21 +268,21 @@ async function makeCompletion(content) {
 
         return {
             flashcards: validFlashcards,
-            summary: summary
+            summary,
         };
 
     } catch (error) {
-        if (error.name === 'AbortError') {
+        if (error instanceof Error && error.name === 'AbortError') {
             throw new Error('Request timed out after 30 seconds');
         }
         logger.error({ err: error }, 'Error in makeCompletion');
-        throw new Error(`AI processing failed: ${error.message}`);
+        throw new Error(`AI processing failed: ${(error as Error).message}`);
     }
 }
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
     try {
-        const { docId, chunkIndex } = await request.json();
+        const { docId, chunkIndex } = await request.json() as { docId: string; chunkIndex: number };
 
         if (!docId || chunkIndex === undefined) {
             return NextResponse.json(
@@ -307,7 +292,6 @@ export async function POST(request) {
         }
 
         try {
-            // Read the parent upload doc to get totalChunks
             const uploadSnap = await getDoc(doc(db, 'uploads', docId));
 
             if (!uploadSnap.exists()) {
@@ -318,7 +302,7 @@ export async function POST(request) {
             }
 
             const uploadData = uploadSnap.data();
-            const totalChunks = uploadData.totalChunks;
+            const totalChunks = uploadData.totalChunks as number;
 
             if (chunkIndex >= totalChunks) {
                 return NextResponse.json(
@@ -327,7 +311,6 @@ export async function POST(request) {
                 );
             }
 
-            // Read the chunk content from Firestore
             const chunkSnap = await getDoc(doc(db, 'uploads', docId, 'chunks', `chunk_${chunkIndex}`));
 
             if (!chunkSnap.exists()) {
@@ -337,11 +320,11 @@ export async function POST(request) {
                 );
             }
 
-            const chunkContent = chunkSnap.data().content;
+            const chunkContent = chunkSnap.data().content as string;
 
             logger.info({ docId, chunkIndex }, 'Processing chunk with AI');
             const result = await makeCompletion(chunkContent);
-            
+
             return NextResponse.json({
                 success: true,
                 message: 'Chunk processed successfully',
@@ -352,23 +335,25 @@ export async function POST(request) {
                 },
                 result: {
                     flashcards: result.flashcards,
-                    summary: result.summary
-                }
+                    summary: result.summary,
+                },
             });
 
         } catch (error) {
-            logger.error({ err: error }, 'Error processing chunk');
+            const err = error as Error;
+            logger.error({ err }, 'Error processing chunk');
             return NextResponse.json(
-                { 
+                {
                     error: "Error processing chunk.",
-                    details: error.message
+                    details: err.message,
                 },
                 { status: 500 }
             );
         }
 
     } catch (error) {
-        logger.error({ err: error }, 'Error in generate route');
+        const err = error as Error;
+        logger.error({ err }, 'Error in generate route');
         return NextResponse.json(
             { error: "Error processing request." },
             { status: 500 }

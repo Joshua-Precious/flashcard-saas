@@ -1,80 +1,126 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, type ChangeEvent, type DragEvent } from 'react';
 import { Upload, X, File, Image, FileText, Archive } from 'lucide-react';
 import logger from '@/lib/logger.browser';
 
-function generateUniqueId() {
+interface FileItem {
+    id: string;
+    file: File;
+    name: string;
+    size: number;
+    type: string;
+    preview?: string;
+}
+
+interface UploadedFile {
+    id: string;
+    name: string;
+    type: string;
+    size: number;
+    docId: string;
+    uploadedAt: string;
+    url?: string;
+}
+
+interface UploadStatusEntry {
+    status: 'uploading' | 'completed' | 'error';
+    progress?: number;
+    docId?: string;
+    error?: string;
+}
+
+interface Flashcard {
+    front: string;
+    back: string;
+    summary?: string;
+}
+
+interface GenerationStatusEntry {
+    status: 'processing' | 'completed' | 'error';
+    message: string;
+    result?: Flashcard[];
+    summaries?: string[];
+    error?: string;
+}
+
+interface ChunkStatusEntry {
+    totalChunks: number;
+    processedChunks: number;
+    chunks?: { index: number; size: number }[];
+}
+
+function generateUniqueId(): string {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
 export default function FileUploadPage() {
-    const [files, setFiles] = useState([]);
+    const [files, setFiles] = useState<FileItem[]>([]);
     const [dragActive, setDragActive] = useState(false);
-    const fileInputRef = useRef(null);
-    const [uploadStatus, setUploadStatus] = useState({});
-    const [uploadedFiles, setUploadedFiles] = useState([]);
-    const [generationStatus, setGenerationStatus] = useState({});
-    const [selectedFlashcards, setSelectedFlashcards] = useState(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploadStatus, setUploadStatus] = useState<Record<string, UploadStatusEntry>>({});
+    const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+    const [generationStatus, setGenerationStatus] = useState<Record<string, GenerationStatusEntry>>({});
+    const [selectedFlashcards, setSelectedFlashcards] = useState<Flashcard[] | null>(null);
     const [currentCard, setCurrentCard] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
-    const [chunkStatus, setChunkStatus] = useState({});
-    const [summaries, setSummaries] = useState([]);
-    const [currentChunkIndex, setCurrentChunkIndex] = useState(0);
+    const [chunkStatus, setChunkStatus] = useState<Record<string, ChunkStatusEntry>>({});
+    const [summaries, setSummaries] = useState<string[]>([]);
+    const [currentChunkIndex] = useState(0);
 
     const ALLOWED_TYPES = [
-        'application/pdf',                                           // PDF
-        'application/msword',                                        // DOC
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // DOCX
-        'application/vnd.oasis.opendocument.text',                  // ODT
-        'text/plain',                                               // TXT
-        'application/rtf'                                           // RTF
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.oasis.opendocument.text',
+        'text/plain',
+        'application/rtf',
     ];
 
-    const handleFiles = (fileList) => {
+    const handleFiles = (fileList: FileList) => {
         const validFiles = Array.from(fileList).filter(file => ALLOWED_TYPES.includes(file.type));
         const invalidFiles = Array.from(fileList).filter(file => !ALLOWED_TYPES.includes(file.type));
-        
+
         if (invalidFiles.length > 0) {
             alert(`The following files are not allowed: ${invalidFiles.map(f => f.name).join(', ')}\n\nOnly PDF and document files are allowed.`);
         }
 
         if (validFiles.length > 0) {
-            const newFiles = validFiles.map(file => ({
+            const newFiles: FileItem[] = validFiles.map(file => ({
                 id: generateUniqueId(),
                 file: file,
                 name: file.name,
                 size: file.size,
-                type: file.type
+                type: file.type,
             }));
             setFiles(prev => [...prev, ...newFiles]);
         }
     };
 
-    const handleDrag = (e) => {
+    const handleDrag = (e: DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
         if (e.type === "dragenter" || e.type === "dragover") {
-        setDragActive(true);
+            setDragActive(true);
         } else if (e.type === "dragleave") {
-        setDragActive(false);
+            setDragActive(false);
         }
     };
 
-    const handleDrop = (e) => {
+    const handleDrop = (e: DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
         setDragActive(false);
-        
+
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-        handleFiles(e.dataTransfer.files);
+            handleFiles(e.dataTransfer.files);
         }
     };
 
-    const handleChange = (e) => {
+    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         e.preventDefault();
         if (e.target.files && e.target.files[0]) {
-        handleFiles(e.target.files);
+            handleFiles(e.target.files);
         }
     };
 
@@ -82,28 +128,27 @@ export default function FileUploadPage() {
         fileInputRef.current?.click();
     };
 
-    const removeFile = (id) => {
+    const removeFile = (id: string) => {
         setFiles(prev => {
-        const updated = prev.filter(file => file.id !== id);
-        // Clean up preview URLs to prevent memory leaks
-        const removedFile = prev.find(file => file.id === id);
-        if (removedFile && removedFile.preview) {
-            URL.revokeObjectURL(removedFile.preview);
-        }
-        return updated;
+            const updated = prev.filter(file => file.id !== id);
+            const removedFile = prev.find(file => file.id === id);
+            if (removedFile && removedFile.preview) {
+                URL.revokeObjectURL(removedFile.preview);
+            }
+            return updated;
         });
     };
 
     const clearAllFiles = () => {
         files.forEach(file => {
-        if (file.preview) {
-            URL.revokeObjectURL(file.preview);
-        }
+            if (file.preview) {
+                URL.revokeObjectURL(file.preview);
+            }
         });
         setFiles([]);
     };
 
-    const formatFileSize = (bytes) => {
+    const formatFileSize = (bytes: number): string => {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -111,24 +156,23 @@ export default function FileUploadPage() {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
-    const getFileIcon = (type) => {
+    const getFileIcon = (type: string) => {
         if (type.startsWith('image/')) return <Image className="w-5 h-5 text-green-500" />;
         if (type.startsWith('text/') || type.includes('document')) return <FileText className="w-5 h-5 text-blue-500" />;
         if (type.includes('zip') || type.includes('rar') || type.includes('archive')) return <Archive className="w-5 h-5 text-orange-500" />;
         return <File className="w-5 h-5 text-gray-500" />;
     };
 
-    const generateFromFile = async (fileId, docId) => {
+    const generateFromFile = async (fileId: string, docId: string) => {
         try {
             setGenerationStatus(prev => ({
                 ...prev,
-                [fileId]: { 
+                [fileId]: {
                     status: 'processing',
-                    message: 'Extracting and chunking content...'
-                }
+                    message: 'Extracting and chunking content...',
+                },
             }));
 
-            // First, extract and chunk the content
             const extractResponse = await fetch('/api/extract', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -146,32 +190,29 @@ export default function FileUploadPage() {
                 [fileId]: {
                     totalChunks: extractData.metadata.totalChunks,
                     processedChunks: 0,
-                    chunks: extractData.metadata.chunks
-                }
+                    chunks: extractData.metadata.chunks,
+                },
             }));
 
-            // Process each chunk
-            const allFlashcards = [];
-            const allSummaries = [];
+            const allFlashcards: Flashcard[] = [];
+            const allSummaries: string[] = [];
 
             for (let i = 0; i < extractData.metadata.totalChunks; i++) {
                 setGenerationStatus(prev => ({
                     ...prev,
-                    [fileId]: { 
+                    [fileId]: {
                         status: 'processing',
-                        message: `Processing chunk ${i + 1} of ${extractData.metadata.totalChunks}...`
-                    }
+                        message: `Processing chunk ${i + 1} of ${extractData.metadata.totalChunks}...`,
+                    },
                 }));
 
                 const response = await fetch('/api/generate', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         docId: extractData.metadata.docId,
-                        chunkIndex: i
-                    })
+                        chunkIndex: i,
+                    }),
                 });
 
                 const data = await response.json();
@@ -180,7 +221,6 @@ export default function FileUploadPage() {
                     throw new Error(data.error || 'Generation failed');
                 }
 
-                // Add null checks for the response data
                 if (data.result && Array.isArray(data.result.flashcards)) {
                     allFlashcards.push(...data.result.flashcards);
                 }
@@ -192,38 +232,37 @@ export default function FileUploadPage() {
                     ...prev,
                     [fileId]: {
                         ...prev[fileId],
-                        processedChunks: i + 1
-                    }
+                        processedChunks: i + 1,
+                    },
                 }));
             }
 
-            // Ensure we have valid data before updating state
             if (allFlashcards.length === 0) {
                 throw new Error('No valid flashcards were generated');
             }
 
             setGenerationStatus(prev => ({
                 ...prev,
-                [fileId]: { 
+                [fileId]: {
                     status: 'completed',
                     result: allFlashcards,
                     summaries: allSummaries.length > 0 ? allSummaries : ['No summary available'],
-                    message: 'Processing complete'
-                }
+                    message: 'Processing complete',
+                },
             }));
 
             logger.info({ flashcardCount: allFlashcards.length }, 'Generated flashcards');
             logger.info({ summaryCount: allSummaries.length }, 'Generated summaries');
-
         } catch (error) {
-            logger.error({ err: error }, 'Error generating from file');
+            const err = error as Error;
+            logger.error({ err }, 'Error generating from file');
             setGenerationStatus(prev => ({
                 ...prev,
-                [fileId]: { 
+                [fileId]: {
                     status: 'error',
-                    error: error.message,
-                    message: 'Error: ' + error.message
-                }
+                    error: err.message,
+                    message: 'Error: ' + err.message,
+                },
             }));
         }
     };
@@ -233,7 +272,7 @@ export default function FileUploadPage() {
             try {
                 setUploadStatus(prev => ({
                     ...prev,
-                    [fileObj.id]: { status: 'uploading', progress: 0 }
+                    [fileObj.id]: { status: 'uploading', progress: 0 },
                 }));
 
                 const formData = new FormData();
@@ -241,7 +280,7 @@ export default function FileUploadPage() {
 
                 const uploadResponse = await fetch('/api/upload', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
                 });
 
                 const uploadData = await uploadResponse.json();
@@ -252,52 +291,43 @@ export default function FileUploadPage() {
 
                 setUploadStatus(prev => ({
                     ...prev,
-                    [fileObj.id]: { 
+                    [fileObj.id]: {
                         status: 'completed',
-                        docId: uploadData.docId
-                    }
+                        docId: uploadData.docId,
+                    },
                 }));
 
-                // Add to uploaded files list
                 setUploadedFiles(prev => [...prev, {
                     id: fileObj.id,
                     name: fileObj.name,
                     type: fileObj.type,
                     size: fileObj.size,
                     docId: uploadData.docId,
-                    uploadedAt: new Date().toISOString()
+                    uploadedAt: new Date().toISOString(),
                 }]);
 
-                // Automatically start generation after successful upload
                 await generateFromFile(fileObj.id, uploadData.docId);
-
             } catch (error) {
-                logger.error({ err: error }, 'Error uploading file');
+                const err = error as Error;
+                logger.error({ err }, 'Error uploading file');
                 setUploadStatus(prev => ({
                     ...prev,
-                    [fileObj.id]: { 
+                    [fileObj.id]: {
                         status: 'error',
-                        error: error.message
-                    }
+                        error: err.message,
+                    },
                 }));
             }
         }
     };
 
-    // Function to format date
-    const formatDate = (dateString) => {
+    const formatDate = (dateString: string): string => {
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
-            year: 'numeric'
+            year: 'numeric',
         });
-    };
-
-    const showFlashcards = (flashcards) => {
-        setSelectedFlashcards(flashcards);
-        setCurrentCard(0);
-        setIsFlipped(false);
     };
 
     const nextCard = () => {
@@ -329,74 +359,74 @@ export default function FileUploadPage() {
             <div className="container mx-auto px-4 py-8">
                 {/* Header */}
                 <div className="text-center mb-12">
-                <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                    Study Buddy
-                </h1>
-                <p className='text-lg text-gray-900 max-w-xl mx-auto pb-6'>
-                    Study Buddy is a tool that helps you study for your exams.
-                </p>
-                <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                    Upload your study materials here for easy access.
-                </p>
+                    <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                        Study Buddy
+                    </h1>
+                    <p className="text-lg text-gray-900 max-w-xl mx-auto pb-6">
+                        Study Buddy is a tool that helps you study for your exams.
+                    </p>
+                    <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                        Upload your study materials here for easy access.
+                    </p>
                 </div>
 
                 {/* Upload Area */}
                 <div className="max-w-4xl mx-auto mb-8">
-                <div
-                    className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${
-                    dragActive 
-                        ? 'border-blue-500 bg-blue-50 scale-105' 
-                        : 'border-gray-300 hover:border-gray-400'
-                    }`}
-                    onDragEnter={handleDrag}
-                    onDragLeave={handleDrag}
-                    onDragOver={handleDrag}
-                    onDrop={handleDrop}
-                >
-                    <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept=".doc,.docx,.odt,.txt,.rtf,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,text/plain,application/rtf"
-                    onChange={handleChange}
-                    className="hidden"
-                    />
-                    
-                    <div className="flex flex-col items-center space-y-4">
-                    <div className={`p-4 rounded-full transition-colors ${
-                        dragActive ? 'bg-blue-100' : 'bg-gray-100'
-                    }`}>
-                        <Upload className={`w-12 h-12 ${
-                        dragActive ? 'text-blue-600' : 'text-gray-400'
-                        }`} />
-                    </div>
-                    
-                    <div>
-                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                        {dragActive ? 'Drop your files here!' : 'Upload your documents'}
-                        </h3>
-                        <p className="text-gray-500 mb-2">
-                        Drag and drop files here, or{' '}
-                        <button
-                            onClick={onButtonClick}
-                            className="text-blue-600 hover:text-blue-700 font-medium underline"
-                        >
-                            browse
-                        </button>
-                        </p>
-                        <p className="text-sm text-gray-400">
-                            Allowed files: DOC, DOCX, ODT, TXT, RTF
-                        </p>
-                    </div>
-                    
-                    <button
-                        onClick={onButtonClick}
-                        className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-md hover:shadow-lg"
+                    <div
+                        className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${
+                            dragActive
+                                ? 'border-blue-500 bg-blue-50 scale-105'
+                                : 'border-gray-300 hover:border-gray-400'
+                        }`}
+                        onDragEnter={handleDrag}
+                        onDragLeave={handleDrag}
+                        onDragOver={handleDrag}
+                        onDrop={handleDrop}
                     >
-                        Select Files
-                    </button>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            multiple
+                            accept=".doc,.docx,.odt,.txt,.rtf,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,text/plain,application/rtf"
+                            onChange={handleChange}
+                            className="hidden"
+                        />
+
+                        <div className="flex flex-col items-center space-y-4">
+                            <div className={`p-4 rounded-full transition-colors ${
+                                dragActive ? 'bg-blue-100' : 'bg-gray-100'
+                            }`}>
+                                <Upload className={`w-12 h-12 ${
+                                    dragActive ? 'text-blue-600' : 'text-gray-400'
+                                }`} />
+                            </div>
+
+                            <div>
+                                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                                    {dragActive ? 'Drop your files here!' : 'Upload your documents'}
+                                </h3>
+                                <p className="text-gray-500 mb-2">
+                                    Drag and drop files here, or{' '}
+                                    <button
+                                        onClick={onButtonClick}
+                                        className="text-blue-600 hover:text-blue-700 font-medium underline"
+                                    >
+                                        browse
+                                    </button>
+                                </p>
+                                <p className="text-sm text-gray-400">
+                                    Allowed files: DOC, DOCX, ODT, TXT, RTF
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={onButtonClick}
+                                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-md hover:shadow-lg"
+                            >
+                                Select Files
+                            </button>
+                        </div>
                     </div>
-                </div>
                 </div>
 
                 {/* Uploaded Files Container */}
@@ -406,7 +436,7 @@ export default function FileUploadPage() {
                             <div className="px-6 py-4 border-b border-gray-200">
                                 <h2 className="text-xl font-semibold text-gray-800">
                                     Your Study Materials
-x                                </h2>
+                                </h2>
                             </div>
                             <div className="divide-y divide-gray-100">
                                 {uploadedFiles.map((file) => (
@@ -435,7 +465,7 @@ x                                </h2>
                                                             {generationStatus[file.id].status === 'completed' && generationStatus[file.id].result && (
                                                                 <div className="mt-2">
                                                                     <p className="text-sm text-gray-600">
-                                                                        {Array.isArray(generationStatus[file.id].result) ? generationStatus[file.id].result.length : 0} flashcards created
+                                                                        {Array.isArray(generationStatus[file.id].result) ? generationStatus[file.id].result!.length : 0} flashcards created
                                                                     </p>
                                                                 </div>
                                                             )}
@@ -454,7 +484,7 @@ x                                </h2>
                                                 </a>
                                                 {!generationStatus[file.id] && (
                                                     <button
-                                                        onClick={() => generateFromFile(file.id, file.url)}
+                                                        onClick={() => generateFromFile(file.id, file.docId)}
                                                         className="px-3 py-1 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 rounded-md transition-colors"
                                                     >
                                                         Process
@@ -463,7 +493,7 @@ x                                </h2>
                                                 {generationStatus[file.id] && generationStatus[file.id].status === 'completed' && (
                                                     <button
                                                         onClick={() => {
-                                                            const flashcards = Array.isArray(generationStatus[file.id].result) ? generationStatus[file.id].result : [];
+                                                            const flashcards = Array.isArray(generationStatus[file.id].result) ? generationStatus[file.id].result! : [];
                                                             setSelectedFlashcards(flashcards);
                                                             setSummaries(generationStatus[file.id].summaries || []);
                                                             setCurrentCard(0);
@@ -506,7 +536,7 @@ x                                </h2>
                                     </button>
                                 </div>
                             </div>
-                            
+
                             <div className="divide-y divide-gray-100">
                                 {files.map((fileObj) => (
                                     <div key={`file-${fileObj.id}`} className="px-6 py-4 hover:bg-gray-50 transition-colors">
@@ -514,7 +544,7 @@ x                                </h2>
                                             <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
                                                 {getFileIcon(fileObj.type)}
                                             </div>
-                                            
+
                                             <div className="flex-1 min-w-0">
                                                 <h3 className="text-sm font-medium text-gray-900 truncate">
                                                     {fileObj.name}
@@ -534,7 +564,7 @@ x                                </h2>
                                                     </p>
                                                 )}
                                             </div>
-                                            
+
                                             <button
                                                 onClick={() => removeFile(fileObj.id)}
                                                 className="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50"
@@ -552,54 +582,54 @@ x                                </h2>
 
                 {/* Empty State */}
                 {files.length === 0 && (
-                <div className="text-center text-gray-500 mt-12">
-                    <p>No files selected yet. Start by uploading some files above!</p>
-                </div>
+                    <div className="text-center text-gray-500 mt-12">
+                        <p>No files selected yet. Start by uploading some files above!</p>
+                    </div>
                 )}
 
                 {/* Processing Status */}
                 {Object.entries(generationStatus).map(([fileId, status]) => {
                     const file = uploadedFiles?.find(f => f.id === fileId);
                     return (
-                    <div key={`status-${fileId}`} className="bg-white rounded-lg shadow-md p-6 mb-4">
-                        <h3 className="font-semibold mb-2">
-                            {file?.name || 'File'}
-                        </h3>
-                        <div className="text-sm text-gray-600 mb-2">{status.message}</div>
-                        
-                        {chunkStatus[fileId] && (
-                            <div className="mb-4">
-                                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                                    <div 
-                                        className="h-full bg-blue-500 transition-all duration-500"
-                                        style={{
-                                            width: `${(chunkStatus[fileId].processedChunks / chunkStatus[fileId].totalChunks) * 100}%`
-                                        }}
-                                    />
-                                </div>
-                                <div className="text-xs text-gray-500 mt-1">
-                                    {chunkStatus[fileId].processedChunks} of {chunkStatus[fileId].totalChunks} chunks processed
-                                </div>
-                            </div>
-                        )}
+                        <div key={`status-${fileId}`} className="bg-white rounded-lg shadow-md p-6 mb-4">
+                            <h3 className="font-semibold mb-2">
+                                {file?.name || 'File'}
+                            </h3>
+                            <div className="text-sm text-gray-600 mb-2">{status.message}</div>
 
-                        {status.status === 'completed' && (
-                            <div className="mt-4">
-                                <button
-                                    onClick={() => {
-                                        const flashcards = Array.isArray(status.result) ? status.result : [];
-                                        setSelectedFlashcards(flashcards);
-                                        setSummaries(status.summaries || []);
-                                        setCurrentCard(0);
-                                        setIsFlipped(false);
-                                    }}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                                >
-                                    Study Flashcards
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                            {chunkStatus[fileId] && (
+                                <div className="mb-4">
+                                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-blue-500 transition-all duration-500"
+                                            style={{
+                                                width: `${(chunkStatus[fileId].processedChunks / chunkStatus[fileId].totalChunks) * 100}%`,
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                        {chunkStatus[fileId].processedChunks} of {chunkStatus[fileId].totalChunks} chunks processed
+                                    </div>
+                                </div>
+                            )}
+
+                            {status.status === 'completed' && (
+                                <div className="mt-4">
+                                    <button
+                                        onClick={() => {
+                                            const flashcards = Array.isArray(status.result) ? status.result : [];
+                                            setSelectedFlashcards(flashcards);
+                                            setSummaries(status.summaries || []);
+                                            setCurrentCard(0);
+                                            setIsFlipped(false);
+                                        }}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                    >
+                                        Study Flashcards
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     );
                 })}
 
@@ -632,7 +662,7 @@ x                                </h2>
                                 <div className="flex-1 min-h-[400px] flex flex-col">
                                     <h3 className="font-bold text-xl mb-4">Flashcard {currentCard + 1} of {selectedFlashcards.length}</h3>
                                     <div className="flashcard-container flex-1">
-                                        <div 
+                                        <div
                                             className={`flashcard ${isFlipped ? 'flipped' : ''}`}
                                             onClick={() => setIsFlipped(!isFlipped)}
                                         >
@@ -644,14 +674,13 @@ x                                </h2>
                                                     </div>
                                                 </div>
                                             </div>
-                                            
+
                                             {/* Back */}
                                             <div className="flashcard-back bg-blue-50 border-2 border-blue-200 rounded-lg">
                                                 <div className="flashcard-content">
                                                     <div className="text-xl text-gray-800 mb-4">
                                                         {selectedFlashcards[currentCard]?.back || 'No answer available'}
                                                     </div>
-                                                    {/* Per-question summary */}
                                                     {selectedFlashcards[currentCard]?.summary && (
                                                         <div className="mt-4 pt-4 border-t border-blue-200">
                                                             <h4 className="text-sm font-semibold text-gray-600 mb-2">Additional Context:</h4>
@@ -704,4 +733,4 @@ x                                </h2>
             </div>
         </div>
     );
-} 
+}

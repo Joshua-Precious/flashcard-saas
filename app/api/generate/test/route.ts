@@ -1,9 +1,8 @@
-import { NextResponse } from 'next/server'
-import logger from '@/lib/logger'
+import { NextResponse } from 'next/server';
+import logger from '@/lib/logger';
 
 export async function GET() {
     try {
-        // First check if we have an API key
         if (!process.env.OPENROUTER_API_KEY) {
             throw new Error('OPENROUTER_API_KEY is not set in environment variables');
         }
@@ -14,21 +13,21 @@ export async function GET() {
                 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
                 'Content-Type': 'application/json',
                 'HTTP-Referer': process.env.APP_URL || 'http://localhost:3000',
-                'X-Title': 'Flashcard Study Buddy'
+                'X-Title': 'Flashcard Study Buddy',
             },
             body: JSON.stringify({
                 model: 'mistralai/mistral-7b-instruct',
                 messages: [
                     {
                         role: 'system',
-                        content: 'You are a helpful assistant. Respond with "Connection successful!" if you receive this message.'
+                        content: 'You are a helpful assistant. Respond with "Connection successful!" if you receive this message.',
                     },
                     {
                         role: 'user',
-                        content: 'Test connection'
-                    }
-                ]
-            })
+                        content: 'Test connection',
+                    },
+                ],
+            }),
         });
 
         if (!response.ok) {
@@ -40,14 +39,15 @@ export async function GET() {
 
         return NextResponse.json({
             success: true,
-            message: completion.choices[0].message.content
+            message: completion.choices[0].message.content,
         });
     } catch (error) {
-        logger.error({ err: error }, 'Connection test failed');
+        const err = error as Error;
+        logger.error({ err }, 'Connection test failed');
         return NextResponse.json({
             success: false,
-            error: error.message,
-            hint: !process.env.OPENROUTER_API_KEY ? 'Make sure you have set up the OPENROUTER_API_KEY in your .env.local file' : undefined
+            error: err.message,
+            hint: !process.env.OPENROUTER_API_KEY ? 'Make sure you have set up the OPENROUTER_API_KEY in your .env.local file' : undefined,
         }, { status: 500 });
     }
-} 
+}

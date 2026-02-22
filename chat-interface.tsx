@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type ChangeEvent } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Home, MessageSquare, Paperclip, Plus } from "lucide-react"
@@ -121,7 +121,7 @@ export default function Component() {
                 type="text"
                 placeholder="Upload a document"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setMessage(e.target.value)}
                 className="w-full pl-4 pr-12 py-3 bg-white border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               <Button
                 variant="ghost"
