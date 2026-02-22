@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useRef, type ChangeEvent, type DragEvent } from 'react';
-import { Upload, X, File, Image, FileText, Archive, ChevronDown, ChevronUp } from 'lucide-react';
+import { Upload, X, File, Image as ImageIcon, FileText, Archive, ChevronDown, ChevronUp } from 'lucide-react';
+import Link from 'next/link';
 import logger from '@/lib/logger.browser';
 
 interface FileItem {
@@ -157,7 +158,7 @@ export default function FileUploadPage() {
     };
 
     const getFileIcon = (type: string) => {
-        if (type.startsWith('image/')) return <Image className="w-5 h-5 text-green-500" />;
+        if (type.startsWith('image/')) return <ImageIcon className="w-5 h-5 text-green-500" />;
         if (type.startsWith('text/') || type.includes('document')) return <FileText className="w-5 h-5 text-blue-500" />;
         if (type.includes('zip') || type.includes('rar') || type.includes('archive')) return <Archive className="w-5 h-5 text-orange-500" />;
         return <File className="w-5 h-5 text-gray-500" />;
@@ -348,14 +349,14 @@ export default function FileUploadPage() {
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
             {/* Back Button */}
             <div className="absolute top-4 left-4 md:top-6 md:left-6 z-10">
-                <a
+                <Link
                     href="/"
                     className="px-3 py-2 md:px-5 md:py-2.5 bg-white text-gray-700 font-medium rounded-full shadow-sm hover:shadow-md hover:bg-gray-50 transition-all duration-200 flex items-center space-x-2 border border-gray-200 text-sm md:text-base"
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                     <span className="hidden md:inline">Back to Home</span>
                     <span className="md:hidden">Back</span>
-                </a>
+                </Link>
             </div>
 
             <div className="container mx-auto px-4 py-16 md:py-16">
