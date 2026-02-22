@@ -1,6 +1,9 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import pino from 'pino';
+
+const logger = pino({ level: 'info', transport: { target: 'pino-pretty', options: { colorize: true } } });
 
 // Get the directory name of the current module
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -8,7 +11,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 async function testFileUpload(filePath) {
     try {
         const fileName = path.basename(filePath);
-        console.log(`\n=== Testing upload for: ${fileName} ===\n`);
+        logger.info({ fileName }, '=== Testing upload ===');
         
         // Read the test file
         const fileBuffer = await fs.readFile(filePath);
@@ -23,7 +26,7 @@ async function testFileUpload(filePath) {
         formData.append('file', file);
 
         // Make the upload request
-        console.log('Sending upload request...');
+        logger.info('Sending upload request');
         const response = await fetch('http://localhost:3000/api/upload', {
             method: 'POST',
             body: formData
@@ -35,22 +38,11 @@ async function testFileUpload(filePath) {
             throw new Error(`Upload failed: ${result.error}\nDetails: ${result.details || 'No additional details'}`);
         }
 
-        console.log('Upload successful!');
-        console.log('Response:', result);
-        
-        // Try to read the converted file
-        if (result.url) {
-            const convertedFilePath = path.join(process.cwd(), 'public', result.url);
-            const convertedContent = await fs.readFile(convertedFilePath, 'utf-8');
-            console.log('\nConverted content preview (first 500 chars):');
-            console.log('----------------------------------------');
-            console.log(convertedContent.substring(0, 500));
-            console.log('----------------------------------------\n');
-        }
+        logger.info({ result }, 'Upload successful');
 
         return { success: true, result };
     } catch (error) {
-        console.error(`Error testing ${path.basename(filePath)}:`, error);
+        logger.error({ err: error, file: path.basename(filePath) }, 'Error testing file');
         return { success: false, error: error.message };
     }
 }
@@ -59,9 +51,9 @@ async function testFileUpload(filePath) {
 const filePath = process.argv[2];
 
 if (!filePath) {
-    console.error('\nPlease provide a file path as an argument.');
-    console.log('Usage: node upload.test.js <path-to-file>');
-    console.log('Example: node upload.test.js "../public/samples/test.pdf"\n');
+    logger.error('Please provide a file path as an argument.');
+    logger.info('Usage: node upload.test.js <path-to-file>');
+    logger.info('Example: node upload.test.js "../public/samples/test.pdf"');
     process.exit(1);
 }
 
@@ -71,9 +63,9 @@ try {
     await testFileUpload(filePath);
 } catch (error) {
     if (error.code === 'ENOENT') {
-        console.error(`\nFile not found: ${filePath}\n`);
+        logger.error({ filePath }, 'File not found');
     } else {
-        console.error('\nError:', error.message, '\n');
+        logger.error({ err: error }, 'Error');
     }
     process.exit(1);
 } 

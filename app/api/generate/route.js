@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import OpenAI from 'openai'
-import { readFile } from 'fs/promises'
-import path from 'path'
+import logger from '@/lib/logger'
+import { db } from '@/lib/firebase'
+import { doc, getDoc } from 'firebase/firestore'
 
 //For the system prompt, see how we can modify it to tell it to go through a pdf and create flashcards from it.
 // I need a system prompt for study buddy It's an AI tool for school students that allows you to upload your PDF's and it generates a summary of the PDF as well as a quiz for you.
@@ -92,7 +92,7 @@ function splitIntoChunks(text, maxChunkSize = 100000) {
 
     // Log chunk sizes for debugging
     chunks.forEach((chunk, i) => {
-        console.log(`Chunk ${i} estimated tokens: ${estimateTokens(chunk)}`);
+        logger.info({ chunk: i, estimatedTokens: estimateTokens(chunk) }, 'Chunk token estimate');
     });
 
     return chunks;
@@ -115,7 +115,7 @@ function cleanAndParseJSON(text) {
         // Try to parse the JSON directly first
         return JSON.parse(jsonStr);
     } catch (e) {
-        console.log('Initial JSON parse failed, attempting to fix JSON...');
+        logger.warn('Initial JSON parse failed, attempting to fix JSON');
         
         // Replace special characters with ASCII alternatives
         jsonStr = jsonStr
@@ -147,7 +147,7 @@ function cleanAndParseJSON(text) {
             // Try parsing with the fixed JSON
             return JSON.parse(jsonStr);
         } catch (e) {
-            console.log('Second parse attempt failed, trying to extract valid parts...');
+            logger.warn('Second parse attempt failed, trying to extract valid parts');
             
             try {
                 // Extract flashcards array content
@@ -181,7 +181,7 @@ function cleanAndParseJSON(text) {
                     };
                 }
             } catch (err) {
-                console.error('Failed to extract valid parts:', err);
+                logger.error({ err }, 'Failed to extract valid parts');
             }
 
             // Last resort: return minimal valid structure
@@ -228,13 +228,13 @@ async function makeCompletion(content) {
         clearTimeout(timeoutId);
 
         const responseText = await response.text();
-        console.log('Raw API response:', responseText);
+        logger.debug({ responseText }, 'Raw API response');
 
         let responseData;
         try {
             responseData = JSON.parse(responseText);
         } catch (e) {
-            console.error('Failed to parse API response:', e);
+            logger.error({ err: e }, 'Failed to parse API response');
             throw new Error('Invalid JSON response from API');
         }
 
@@ -243,18 +243,18 @@ async function makeCompletion(content) {
         }
 
         if (!responseData.choices?.[0]?.message?.content) {
-            console.error('Unexpected API response structure:', responseData);
+            logger.error({ responseData }, 'Unexpected API response structure');
             throw new Error('Invalid API response structure');
         }
 
         const llmResponse = responseData.choices[0].message.content.trim();
-        console.log('LLM response content:', llmResponse);
+        logger.debug({ llmResponse }, 'LLM response content');
 
         let parsedResponse;
         try {
             parsedResponse = JSON.parse(llmResponse);
         } catch (e) {
-            console.log('Direct parsing failed, attempting to clean response...');
+            logger.warn('Direct parsing failed, attempting to clean response');
             parsedResponse = cleanAndParseJSON(llmResponse);
         }
 
@@ -263,7 +263,7 @@ async function makeCompletion(content) {
         }
 
         if (!Array.isArray(parsedResponse.flashcards)) {
-            console.error('Invalid flashcards format:', parsedResponse.flashcards);
+            logger.error({ flashcards: parsedResponse.flashcards }, 'Invalid flashcards format');
             throw new Error('Invalid response format: flashcards must be an array');
         }
 
@@ -290,48 +290,65 @@ async function makeCompletion(content) {
         if (error.name === 'AbortError') {
             throw new Error('Request timed out after 30 seconds');
         }
-        console.error('Error in makeCompletion:', error);
+        logger.error({ err: error }, 'Error in makeCompletion');
         throw new Error(`AI processing failed: ${error.message}`);
     }
 }
 
 export async function POST(request) {
     try {
-        const { filename, chunkIndex } = await request.json();
+        const { docId, chunkIndex } = await request.json();
 
-        if (!filename || chunkIndex === undefined) {
+        if (!docId || chunkIndex === undefined) {
             return NextResponse.json(
-                { error: "Missing filename or chunk index." },
+                { error: "Missing docId or chunk index." },
                 { status: 400 }
             );
         }
 
-        const baseDir = path.join(process.cwd(), 'public/chunks', filename.replace(/\.[^/.]+$/, ''));
-        const chunkPath = path.join(baseDir, `chunk_${chunkIndex}.txt`);
-        const metadataPath = path.join(baseDir, 'metadata.json');
-
         try {
-            const metadata = JSON.parse(await readFile(metadataPath, 'utf-8'));
-            
-            if (chunkIndex >= metadata.totalChunks) {
+            // Read the parent upload doc to get totalChunks
+            const uploadSnap = await getDoc(doc(db, 'uploads', docId));
+
+            if (!uploadSnap.exists()) {
+                return NextResponse.json(
+                    { error: "Upload document not found." },
+                    { status: 404 }
+                );
+            }
+
+            const uploadData = uploadSnap.data();
+            const totalChunks = uploadData.totalChunks;
+
+            if (chunkIndex >= totalChunks) {
                 return NextResponse.json(
                     { error: "Chunk index out of range." },
                     { status: 400 }
                 );
             }
 
-            const chunkContent = await readFile(chunkPath, 'utf-8');
+            // Read the chunk content from Firestore
+            const chunkSnap = await getDoc(doc(db, 'uploads', docId, 'chunks', `chunk_${chunkIndex}`));
 
-            console.log(`Processing chunk ${chunkIndex} with AI...`);
+            if (!chunkSnap.exists()) {
+                return NextResponse.json(
+                    { error: "Chunk not found." },
+                    { status: 404 }
+                );
+            }
+
+            const chunkContent = chunkSnap.data().content;
+
+            logger.info({ docId, chunkIndex }, 'Processing chunk with AI');
             const result = await makeCompletion(chunkContent);
             
             return NextResponse.json({
                 success: true,
                 message: 'Chunk processed successfully',
                 chunkDetails: {
-                    filename,
+                    docId,
                     chunkIndex,
-                    totalChunks: metadata.totalChunks
+                    totalChunks,
                 },
                 result: {
                     flashcards: result.flashcards,
@@ -340,7 +357,7 @@ export async function POST(request) {
             });
 
         } catch (error) {
-            console.error('Error processing chunk:', error);
+            logger.error({ err: error }, 'Error processing chunk');
             return NextResponse.json(
                 { 
                     error: "Error processing chunk.",
@@ -351,7 +368,7 @@ export async function POST(request) {
         }
 
     } catch (error) {
-        console.error('Error in generate route:', error);
+        logger.error({ err: error }, 'Error in generate route');
         return NextResponse.json(
             { error: "Error processing request." },
             { status: 500 }

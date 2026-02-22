@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Upload, X, File, Image, FileText, Archive } from 'lucide-react';
+import logger from '@/lib/logger.browser';
 
 function generateUniqueId() {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -117,7 +118,7 @@ export default function FileUploadPage() {
         return <File className="w-5 h-5 text-gray-500" />;
     };
 
-    const generateFromFile = async (fileId, fileUrl) => {
+    const generateFromFile = async (fileId, docId) => {
         try {
             setGenerationStatus(prev => ({
                 ...prev,
@@ -128,12 +129,10 @@ export default function FileUploadPage() {
             }));
 
             // First, extract and chunk the content
-            const extractFormData = new FormData();
-            extractFormData.append('fileUrl', fileUrl);
-
             const extractResponse = await fetch('/api/extract', {
                 method: 'POST',
-                body: extractFormData
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ docId }),
             });
 
             const extractData = await extractResponse.json();
@@ -170,7 +169,7 @@ export default function FileUploadPage() {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        filename: extractData.metadata.originalFile,
+                        docId: extractData.metadata.docId,
                         chunkIndex: i
                     })
                 });
@@ -213,11 +212,11 @@ export default function FileUploadPage() {
                 }
             }));
 
-            console.log('Generated flashcards:', allFlashcards);
-            console.log('Generated summaries:', allSummaries);
+            logger.info({ flashcardCount: allFlashcards.length }, 'Generated flashcards');
+            logger.info({ summaryCount: allSummaries.length }, 'Generated summaries');
 
         } catch (error) {
-            console.error('Error generating from file:', error);
+            logger.error({ err: error }, 'Error generating from file');
             setGenerationStatus(prev => ({
                 ...prev,
                 [fileId]: { 
@@ -255,7 +254,7 @@ export default function FileUploadPage() {
                     ...prev,
                     [fileObj.id]: { 
                         status: 'completed',
-                        url: uploadData.url
+                        docId: uploadData.docId
                     }
                 }));
 
@@ -265,15 +264,15 @@ export default function FileUploadPage() {
                     name: fileObj.name,
                     type: fileObj.type,
                     size: fileObj.size,
-                    url: uploadData.url,
+                    docId: uploadData.docId,
                     uploadedAt: new Date().toISOString()
                 }]);
 
                 // Automatically start generation after successful upload
-                await generateFromFile(fileObj.id, uploadData.url);
+                await generateFromFile(fileObj.id, uploadData.docId);
 
             } catch (error) {
-                console.error('Error uploading file:', error);
+                logger.error({ err: error }, 'Error uploading file');
                 setUploadStatus(prev => ({
                     ...prev,
                     [fileObj.id]: { 

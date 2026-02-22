@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import logger from '@/lib/logger'
 
 export async function GET() {
     try {
@@ -42,7 +43,7 @@ export async function GET() {
             message: completion.choices[0].message.content
         });
     } catch (error) {
-        console.error('Connection test failed:', error);
+        logger.error({ err: error }, 'Connection test failed');
         return NextResponse.json({
             success: false,
             error: error.message,

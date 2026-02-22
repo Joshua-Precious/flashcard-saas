@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { readFile, writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import logger from '@/lib/logger';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, setDoc, collection, writeBatch } from 'firebase/firestore';
 
 // Function to split text into chunks
 function splitIntoChunks(text, maxChunkSize = 15000) {
@@ -26,100 +27,84 @@ function splitIntoChunks(text, maxChunkSize = 15000) {
     return chunks;
 }
 
-async function extractTextFromFile(filePath) {
-    try {
-        // All files should be text files at this point
-        const content = await readFile(filePath, 'utf-8');
-        
-        // Basic cleanup of any remaining control characters
-        return content
-            .replace(/\0/g, '') // Remove null characters
-            .replace(/[\x00-\x09\x0B-\x0C\x0E-\x1F\x7F]/g, '') // Remove control characters
-            .trim();
-    } catch (error) {
-        console.error('Error reading file:', error);
-        throw new Error(`Failed to read file: ${error.message}`);
-    }
-}
-
 export async function POST(request) {
     try {
-        const formData = await request.formData();
-        const fileUrl = formData.get('fileUrl');
+        const { docId } = await request.json();
 
-        if (!fileUrl) {
+        if (!docId) {
             return NextResponse.json(
-                { error: "No file URL provided." },
+                { error: "No document ID provided." },
                 { status: 400 }
             );
         }
 
-        // Extract filename from URL and clean it
-        const filename = decodeURIComponent(fileUrl.split('/').pop());
-        
-        // Construct full file path
-        const filePath = path.join(process.cwd(), 'public/uploads', filename);
-        
         try {
-            // Extract text from file
-            console.log('Reading file:', filename);
-            const extractedText = await extractTextFromFile(filePath);
-            
+            // Read the uploaded file content from Firestore
+            logger.info({ docId }, 'Reading file from Firestore');
+            const uploadSnap = await getDoc(doc(db, 'uploads', docId));
+
+            if (!uploadSnap.exists()) {
+                return NextResponse.json(
+                    { error: "Uploaded file not found." },
+                    { status: 404 }
+                );
+            }
+
+            const uploadData = uploadSnap.data();
+            const extractedText = uploadData.content;
+
             if (!extractedText || extractedText.trim().length === 0) {
                 throw new Error('No text could be extracted from the file');
             }
 
-            console.log('Text extracted successfully, creating chunks...');
-            
+            logger.info('Text extracted successfully, creating chunks');
+
             // Split content into chunks
             const chunks = splitIntoChunks(extractedText);
-            
+
             if (chunks.length === 0) {
                 throw new Error('No valid text chunks could be created');
             }
 
-            // Create a directory for storing chunks if it doesn't exist
-            const chunksDir = path.join(process.cwd(), 'public/chunks', filename.replace(/\.[^/.]+$/, ''));
-            await mkdir(chunksDir, { recursive: true });
+            // Store chunks in Firestore using a batch write
+            const batch = writeBatch(db);
+            const chunkInfo = [];
 
-            // Store each chunk in a separate file
-            const chunkPromises = chunks.map(async (chunk, index) => {
-                const chunkPath = path.join(chunksDir, `chunk_${index}.txt`);
-                await writeFile(chunkPath, chunk);
-                return {
-                    index,
-                    path: chunkPath,
-                    size: chunk.length
-                };
+            for (let i = 0; i < chunks.length; i++) {
+                const chunkRef = doc(db, 'uploads', docId, 'chunks', `chunk_${i}`);
+                batch.set(chunkRef, {
+                    index: i,
+                    content: chunks[i],
+                    size: chunks[i].length,
+                });
+                chunkInfo.push({ index: i, size: chunks[i].length });
+            }
+
+            // Also store metadata on the parent document
+            const uploadRef = doc(db, 'uploads', docId);
+            batch.update(uploadRef, {
+                totalChunks: chunks.length,
+                chunkedAt: new Date().toISOString(),
             });
 
-            const chunkInfo = await Promise.all(chunkPromises);
+            await batch.commit();
 
-            // Store metadata about the chunks
-            const metadata = {
-                originalFile: filename,
-                totalChunks: chunks.length,
-                chunks: chunkInfo,
-                timestamp: new Date().toISOString()
-            };
-
-            const metadataPath = path.join(chunksDir, 'metadata.json');
-            await writeFile(metadataPath, JSON.stringify(metadata, null, 2));
+            logger.info({ docId, totalChunks: chunks.length }, 'Chunks stored in Firestore');
 
             return NextResponse.json({
                 success: true,
                 message: 'File extracted and chunked successfully',
                 metadata: {
-                    ...metadata,
-                    chunks: chunkInfo.map(chunk => ({
-                        index: chunk.index,
-                        size: chunk.size
-                    }))
-                }
+                    docId,
+                    originalFile: uploadData.originalName,
+                    totalChunks: chunks.length,
+                    chunks: chunkInfo,
+                    timestamp: new Date().toISOString(),
+                },
             });
 
         } catch (error) {
-            console.error('Error processing file:', error);
+            logger.error({ err: error }, 'Error processing file');
             return NextResponse.json(
                 { 
                     error: "Error processing file.",
@@ -130,7 +115,7 @@ export async function POST(request) {
         }
 
     } catch (error) {
-        console.error('Error in extract route:', error);
+        logger.error({ err: error }, 'Error in extract route');
         return NextResponse.json(
             { error: "Error processing request." },
             { status: 500 }

@@ -1,7 +1,9 @@
-import { writeFile, mkdir } from 'fs/promises';
 import { NextResponse } from 'next/server';
 import path from 'path';
 import mammoth from 'mammoth';
+import logger from '@/lib/logger';
+import { db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 // Allowed MIME types
 const ALLOWED_TYPES = [
@@ -14,12 +16,12 @@ const ALLOWED_TYPES = [
 
 async function convertDOCXToText(buffer) {
     try {
-        console.log('Converting DOCX to text...');
+        logger.info('Converting DOCX to text');
         const result = await mammoth.extractRawText({ buffer });
-        console.log('DOCX conversion successful');
+        logger.info('DOCX conversion successful');
         return result.value;
     } catch (error) {
-        console.error('Error converting DOCX:', error);
+        logger.error({ err: error }, 'Error converting DOCX');
         throw new Error(`Failed to convert DOCX: ${error.message}`);
     }
 }
@@ -50,27 +52,21 @@ export async function POST(request) {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        // Create unique filename base
+        // Create unique document ID
         const timestamp = Date.now();
         const originalName = file.name;
-        const fileNameBase = `${timestamp}-${path.parse(originalName).name}`;
-        
-        // Ensure uploads directory exists
-        const uploadsDir = path.join(process.cwd(), 'public/uploads');
-        await mkdir(uploadsDir, { recursive: true });
+        const docId = `${timestamp}-${path.parse(originalName).name}`;
 
-        let finalFileName;
         let fileContent;
 
         // Handle different file types
         if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
             try {
-                console.log('Converting DOCX to text:', originalName);
+                logger.info({ originalName }, 'Converting DOCX to text');
                 fileContent = await convertDOCXToText(buffer);
-                finalFileName = `${fileNameBase}.txt`;
-                console.log('DOCX converted successfully');
+                logger.info('DOCX converted successfully');
             } catch (error) {
-                console.error('DOCX conversion error:', error);
+                logger.error({ err: error }, 'DOCX conversion error');
                 return NextResponse.json(
                     { 
                         error: "Failed to convert DOCX file",
@@ -82,22 +78,27 @@ export async function POST(request) {
         } else {
             // For text files, use the content directly
             fileContent = buffer.toString('utf-8');
-            finalFileName = `${fileNameBase}.txt`;
         }
 
-        // Save the file
-        await writeFile(path.join(uploadsDir, finalFileName), fileContent);
-        const fileUrl = `/uploads/${finalFileName}`;
-        
+        // Store the file content in Firestore
+        await setDoc(doc(db, 'uploads', docId), {
+            originalName,
+            content: fileContent,
+            mimeType: file.type,
+            size: file.size,
+            createdAt: new Date().toISOString(),
+        });
+
+        logger.info({ docId, originalName }, 'File stored in Firestore');
+
         return NextResponse.json({ 
             message: "File uploaded successfully",
-            filename: finalFileName,
-            originalName: originalName,
-            url: fileUrl
+            docId,
+            originalName,
         });
         
     } catch (error) {
-        console.error('Error uploading file:', error);
+        logger.error({ err: error }, 'Error uploading file');
         return NextResponse.json(
             { error: "Error uploading file." },
             { status: 500 }
