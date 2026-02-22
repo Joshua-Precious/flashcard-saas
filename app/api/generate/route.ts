@@ -176,7 +176,7 @@ function cleanAndParseJSON(text: string): GenerationResult {
     }
 }
 
-async function makeCompletion(content: string): Promise<GenerationResult> {
+async function makeCompletion(content: string, referer: string): Promise<GenerationResult> {
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -186,11 +186,11 @@ async function makeCompletion(content: string): Promise<GenerationResult> {
             headers: {
                 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
                 'Content-Type': 'application/json',
-                'HTTP-Referer': process.env.APP_URL || 'http://localhost:3000',
+                'HTTP-Referer': referer,
                 'X-Title': 'Flashcard Study Buddy',
             },
             body: JSON.stringify({
-                model: 'deepseek/deepseek-r1-0528:free',
+                model: 'google/gemini-2.0-flash-001',
                 messages: [
                     {
                         role: 'system',
@@ -282,6 +282,7 @@ async function makeCompletion(content: string): Promise<GenerationResult> {
 
 export async function POST(request: NextRequest) {
     try {
+        const origin = request.headers.get('origin') || request.headers.get('referer') || request.nextUrl.origin;
         const { docId, chunkIndex } = await request.json() as { docId: string; chunkIndex: number };
 
         if (!docId || chunkIndex === undefined) {
@@ -323,7 +324,7 @@ export async function POST(request: NextRequest) {
             const chunkContent = chunkSnap.data().content as string;
 
             logger.info({ docId, chunkIndex }, 'Processing chunk with AI');
-            const result = await makeCompletion(chunkContent);
+            const result = await makeCompletion(chunkContent, origin);
 
             return NextResponse.json({
                 success: true,

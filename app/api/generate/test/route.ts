@@ -12,7 +12,7 @@ export async function GET() {
             headers: {
                 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
                 'Content-Type': 'application/json',
-                'HTTP-Referer': process.env.APP_URL || 'http://localhost:3000',
+                'HTTP-Referer': process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000',
                 'X-Title': 'Flashcard Study Buddy',
             },
             body: JSON.stringify({

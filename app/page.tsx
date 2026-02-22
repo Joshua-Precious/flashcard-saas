@@ -6,60 +6,64 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white text-gray-900">
       {/* Header */}
-      <header className="flex items-center justify-between px-8 py-6 shadow-md">
-        <div className="text-2xl font-bold"> Study Buddy</div>
-        <nav className="space-x-6">
-          <a href="#features" className="hover:text-blue-600">Features</a>
-          <a href="#community" className="hover:text-blue-600">Community</a>
-          <a href="#about" className="hover:text-blue-600">About</a>
-          <button className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-            Get Started
-          </button>
+      <header className="sticky top-0 z-50 flex items-center justify-between px-8 py-6 bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">Study Buddy</div>
+        <nav className="space-x-6 font-medium text-gray-600">
+          <a href="#features" className="hover:text-blue-600 transition-colors">Features</a>
+          <a href="#community" className="hover:text-blue-600 transition-colors">Community</a>
+          <a href="#about" className="hover:text-blue-600 transition-colors">About</a>
         </nav>
       </header>
 
       {/* Hero Section */}
-      <section className="px-8 py-20 text-center bg-gradient-to-b from-blue-50 to-white">
-        <h1 className="text-4xl md:text-5xl font-extrabold leading-tight mb-4">
-          Your Smart AI Study Companion
-        </h1>
-        <p className="text-lg md:text-xl text-gray-700 max-w-2xl mx-auto mb-6">
-          Connect, learn, and grow with our AI-powered study tool designed for communities and individuals.
-        </p>
-        <a href="/study">
-          <button className="px-6 py-3 bg-blue-600 text-white rounded-lg text-lg hover:bg-blue-700">
-            Start Studying
-          </button>
-        </a>
+      <section className="px-8 py-32 text-center bg-gradient-to-b from-indigo-50 via-white to-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none"></div>
+        <div className="relative z-10 max-w-4xl mx-auto">
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-gray-900 mb-6">
+            Your Smart <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">AI Study</span> Companion
+          </h1>
+          <p className="text-xl md:text-2xl text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed">
+            Connect, learn, and grow with our AI-powered study tool designed for communities and individuals.
+          </p>
+          <a href="/study" className="inline-block">
+            <button className="px-8 py-4 bg-gray-900 text-white rounded-full text-lg font-semibold hover:bg-gray-800 hover:scale-105 transition-all duration-200 shadow-xl hover:shadow-2xl flex items-center gap-2">
+              Start Studying
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+            </button>
+          </a>
+        </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="px-8 py-16 bg-white">
-        <h2 className="text-3xl font-bold text-center mb-12">Features</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-          <div>
-            <a href="/study" className="block hover:transform hover:scale-105 transition-transform duration-200">
-              <div className="text-4xl mb-4">🤖</div>
-              <h3 className="font-semibold text-xl mb-2">Smart Summary</h3>
-              <p className="text-gray-600">Get instant, relevant replies powered by AI.</p>
-            </a>
-          </div>
-          <div>
-            <div className="text-4xl mb-4">🌐</div>
-            <h3 className="font-semibold text-xl mb-2">Quiz Generation</h3>
-            <p className="text-gray-600">Create quizzes based on your study material.</p>
-          </div>
-          <div>
-            <div className="text-4xl mb-4">🛡️</div>
-            <h3 className="font-semibold text-xl mb-2">Privacy First</h3>
-            <p className="text-gray-600">Your data stays secure and private.</p>
+      <section id="features" className="px-8 py-24 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl font-extrabold text-center mb-16 text-gray-900">Why Choose Study Buddy?</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 border border-gray-100">
+              <a href="/study" className="block group">
+                <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform duration-300">🤖</div>
+                <h3 className="font-bold text-2xl mb-3 text-gray-900">Smart Summary</h3>
+                <p className="text-gray-600 leading-relaxed">Get instant, relevant summaries and flashcards powered by advanced AI models.</p>
+              </a>
+            </div>
+            <div className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 border border-gray-100">
+              <div className="w-16 h-16 bg-indigo-100 rounded-xl flex items-center justify-center text-3xl mb-6">🌐</div>
+              <h3 className="font-bold text-2xl mb-3 text-gray-900">Quiz Generation</h3>
+              <p className="text-gray-600 leading-relaxed">Automatically create interactive quizzes based on your uploaded study materials.</p>
+            </div>
+            <div className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 border border-gray-100">
+              <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center text-3xl mb-6">🛡️</div>
+              <h3 className="font-bold text-2xl mb-3 text-gray-900">Privacy First</h3>
+              <p className="text-gray-600 leading-relaxed">Your data stays secure and private. We never share your study materials.</p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="px-8 py-10 bg-gray-100 text-center text-gray-500 text-sm">
-        © {new Date().getFullYear()} AI Chatbot App. All rights reserved.
+      <footer className="px-8 py-12 bg-white border-t border-gray-100 text-center text-gray-500 text-sm">
+        <p className="mb-2">© {new Date().getFullYear()} Study Buddy. All rights reserved.</p>
+        <p className="text-gray-400">Empowering students with AI-driven learning.</p>
       </footer>
     </div>
   );

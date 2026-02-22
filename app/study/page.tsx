@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, type ChangeEvent, type DragEvent } from 'react';
-import { Upload, X, File, Image, FileText, Archive } from 'lucide-react';
+import { Upload, X, File, Image, FileText, Archive, ChevronDown, ChevronUp } from 'lucide-react';
 import logger from '@/lib/logger.browser';
 
 interface FileItem {
@@ -66,7 +66,7 @@ export default function FileUploadPage() {
     const [isFlipped, setIsFlipped] = useState(false);
     const [chunkStatus, setChunkStatus] = useState<Record<string, ChunkStatusEntry>>({});
     const [summaries, setSummaries] = useState<string[]>([]);
-    const [currentChunkIndex] = useState(0);
+    const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
     const ALLOWED_TYPES = [
         'application/pdf',
@@ -347,36 +347,34 @@ export default function FileUploadPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
             {/* Back Button */}
-            <div className="absolute top-4 left-4">
+            <div className="absolute top-6 left-6">
                 <a
                     href="/"
-                    className="px-4 py-2 bg-white text-blue-600 rounded-lg shadow-md hover:bg-blue-50 transition-colors duration-200 flex items-center space-x-2 border border-blue-200"
+                    className="px-5 py-2.5 bg-white text-gray-700 font-medium rounded-full shadow-sm hover:shadow-md hover:bg-gray-50 transition-all duration-200 flex items-center space-x-2 border border-gray-200"
                 >
-                    <span>← Back to Home</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    <span>Back to Home</span>
                 </a>
             </div>
 
-            <div className="container mx-auto px-4 py-8">
+            <div className="container mx-auto px-4 py-16">
                 {/* Header */}
-                <div className="text-center mb-12">
-                    <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                <div className="text-center mb-16">
+                    <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-6 tracking-tight">
                         Study Buddy
                     </h1>
-                    <p className="text-lg text-gray-900 max-w-xl mx-auto pb-6">
-                        Study Buddy is a tool that helps you study for your exams.
-                    </p>
-                    <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                        Upload your study materials here for easy access.
+                    <p className="text-xl text-gray-700 max-w-2xl mx-auto leading-relaxed">
+                        Upload your study materials to instantly generate AI-powered flashcards and comprehensive summaries.
                     </p>
                 </div>
 
                 {/* Upload Area */}
-                <div className="max-w-4xl mx-auto mb-8">
+                <div className="max-w-4xl mx-auto mb-12">
                     <div
-                        className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${
+                        className={`relative border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 bg-white shadow-sm hover:shadow-md ${
                             dragActive
-                                ? 'border-blue-500 bg-blue-50 scale-105'
-                                : 'border-gray-300 hover:border-gray-400'
+                                ? 'border-blue-500 bg-blue-50/50 scale-[1.02]'
+                                : 'border-gray-200 hover:border-blue-400'
                         }`}
                         onDragEnter={handleDrag}
                         onDragLeave={handleDrag}
@@ -401,58 +399,54 @@ export default function FileUploadPage() {
                                 }`} />
                             </div>
 
-                            <div>
-                                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                            <div className="space-y-3">
+                                <h3 className="text-2xl font-bold text-gray-800">
                                     {dragActive ? 'Drop your files here!' : 'Upload your documents'}
                                 </h3>
-                                <p className="text-gray-500 mb-2">
+                                <p className="text-gray-500 text-lg">
                                     Drag and drop files here, or{' '}
                                     <button
                                         onClick={onButtonClick}
-                                        className="text-blue-600 hover:text-blue-700 font-medium underline"
+                                        className="text-blue-600 hover:text-blue-700 font-semibold underline decoration-2 underline-offset-4 transition-colors"
                                     >
                                         browse
                                     </button>
                                 </p>
-                                <p className="text-sm text-gray-400">
-                                    Allowed files: DOC, DOCX, ODT, TXT, RTF
-                                </p>
+                                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-full border border-gray-100">
+                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Allowed formats:</span>
+                                    <span className="text-sm text-gray-600 font-mono">DOC, DOCX, ODT, TXT, RTF</span>
+                                </div>
                             </div>
-
-                            <button
-                                onClick={onButtonClick}
-                                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-md hover:shadow-lg"
-                            >
-                                Select Files
-                            </button>
                         </div>
                     </div>
                 </div>
 
                 {/* Uploaded Files Container */}
                 {uploadedFiles.length > 0 && (
-                    <div className="max-w-4xl mx-auto mt-12">
-                        <div className="bg-white rounded-xl shadow-lg border border-gray-200">
-                            <div className="px-6 py-4 border-b border-gray-200">
-                                <h2 className="text-xl font-semibold text-gray-800">
-                                    Your Study Materials
+                    <div className="max-w-4xl mx-auto mt-16">
+                        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+                            <div className="px-8 py-6 border-b border-gray-100 bg-gray-50/50">
+                                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                                    <span className="text-blue-600">📚</span> Your Study Materials
                                 </h2>
                             </div>
                             <div className="divide-y divide-gray-100">
                                 {uploadedFiles.map((file) => (
-                                    <div key={`uploaded-${file.id}`} className="p-4 hover:bg-gray-50 transition-colors">
+                                    <div key={`uploaded-${file.id}`} className="p-6 hover:bg-gray-50/80 transition-all duration-200 group">
                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center space-x-4">
-                                                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                                            <div className="flex items-center space-x-5">
+                                                <div className="w-14 h-14 bg-white shadow-sm border border-gray-100 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
                                                     {getFileIcon(file.type)}
                                                 </div>
                                                 <div>
-                                                    <h3 className="text-sm font-medium text-gray-900">
+                                                    <h3 className="text-lg font-bold text-gray-900 mb-1">
                                                         {file.name}
                                                     </h3>
-                                                    <p className="text-sm text-gray-500">
-                                                        {formatFileSize(file.size)} • Uploaded {formatDate(file.uploadedAt)}
-                                                    </p>
+                                                    <div className="flex items-center gap-3 text-sm font-medium text-gray-500">
+                                                        <span className="bg-gray-100 px-2.5 py-1 rounded-md">{formatFileSize(file.size)}</span>
+                                                        <span>•</span>
+                                                        <span>Uploaded {formatDate(file.uploadedAt)}</span>
+                                                    </div>
                                                     {generationStatus[file.id] && (
                                                         <div className="mt-1">
                                                             <p className={`text-sm ${
@@ -473,20 +467,21 @@ export default function FileUploadPage() {
                                                     )}
                                                 </div>
                                             </div>
-                                            <div className="flex items-center space-x-2">
+                                            <div className="flex items-center space-x-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                                 <a
                                                     href={file.url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
+                                                    className="px-4 py-2 text-sm font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-all duration-200 border border-transparent hover:border-blue-100"
                                                 >
                                                     View File
                                                 </a>
                                                 {!generationStatus[file.id] && (
                                                     <button
                                                         onClick={() => generateFromFile(file.id, file.docId)}
-                                                        className="px-3 py-1 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 rounded-md transition-colors"
+                                                        className="px-5 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2"
                                                     >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                                                         Process
                                                     </button>
                                                 )}
@@ -499,8 +494,9 @@ export default function FileUploadPage() {
                                                             setCurrentCard(0);
                                                             setIsFlipped(false);
                                                         }}
-                                                        className="px-3 py-1 text-sm bg-green-600 text-white hover:bg-green-700 rounded-md transition-colors ml-2"
+                                                        className="px-5 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 ml-2"
                                                     >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                                                         Study
                                                     </button>
                                                 )}
@@ -515,23 +511,24 @@ export default function FileUploadPage() {
 
                 {/* Current Upload List */}
                 {files.length > 0 && (
-                    <div className="max-w-4xl mx-auto mt-8">
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                                <h2 className="text-lg font-semibold text-gray-800">
-                                    Files to Upload ({files.length})
+                    <div className="max-w-4xl mx-auto mt-12">
+                        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
+                            <div className="px-8 py-6 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                                    <span className="text-indigo-600">📤</span> Files to Upload ({files.length})
                                 </h2>
-                                <div className="space-x-3">
+                                <div className="flex items-center gap-4">
                                     <button
                                         onClick={clearAllFiles}
-                                        className="text-sm text-gray-500 hover:text-red-600 transition-colors"
+                                        className="text-sm font-semibold text-gray-500 hover:text-red-600 transition-colors px-3 py-2 rounded-lg hover:bg-red-50"
                                     >
                                         Clear All
                                     </button>
                                     <button
                                         onClick={uploadFiles}
-                                        className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
+                                        className="px-6 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2"
                                     >
+                                        <Upload className="w-4 h-4" />
                                         Upload Files
                                     </button>
                                 </div>
@@ -539,19 +536,21 @@ export default function FileUploadPage() {
 
                             <div className="divide-y divide-gray-100">
                                 {files.map((fileObj) => (
-                                    <div key={`file-${fileObj.id}`} className="px-6 py-4 hover:bg-gray-50 transition-colors">
-                                        <div className="flex items-center space-x-4">
-                                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                                    <div key={`file-${fileObj.id}`} className="px-8 py-5 hover:bg-gray-50/80 transition-all duration-200 group">
+                                        <div className="flex items-center space-x-5">
+                                            <div className="w-12 h-12 bg-white shadow-sm border border-gray-100 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
                                                 {getFileIcon(fileObj.type)}
                                             </div>
 
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="text-sm font-medium text-gray-900 truncate">
+                                                <h3 className="text-base font-bold text-gray-900 truncate mb-1">
                                                     {fileObj.name}
                                                 </h3>
-                                                <p className="text-sm text-gray-500">
-                                                    {formatFileSize(fileObj.size)} • {fileObj.type || 'Unknown type'}
-                                                </p>
+                                                <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
+                                                    <span className="bg-gray-100 px-2 py-0.5 rounded">{formatFileSize(fileObj.size)}</span>
+                                                    <span>•</span>
+                                                    <span className="truncate">{fileObj.type || 'Unknown type'}</span>
+                                                </div>
                                                 {uploadStatus[fileObj.id] && (
                                                     <p className={`text-sm ${
                                                         uploadStatus[fileObj.id].status === 'completed' ? 'text-green-500' :
@@ -567,10 +566,10 @@ export default function FileUploadPage() {
 
                                             <button
                                                 onClick={() => removeFile(fileObj.id)}
-                                                className="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50"
+                                                className="flex-shrink-0 p-2.5 text-gray-400 hover:text-red-500 transition-all duration-200 rounded-full hover:bg-red-50 opacity-0 group-hover:opacity-100"
                                                 title="Remove file"
                                             >
-                                                <X className="w-4 h-4" />
+                                                <X className="w-5 h-5" />
                                             </button>
                                         </div>
                                     </div>
@@ -581,21 +580,31 @@ export default function FileUploadPage() {
                 )}
 
                 {/* Empty State */}
-                {files.length === 0 && (
-                    <div className="text-center text-gray-500 mt-12">
-                        <p>No files selected yet. Start by uploading some files above!</p>
+                {files.length === 0 && uploadedFiles.length === 0 && (
+                    <div className="text-center mt-16 p-12 bg-white/50 rounded-3xl border border-gray-100 border-dashed max-w-2xl mx-auto">
+                        <div className="text-4xl mb-4 opacity-50">📄</div>
+                        <p className="text-lg text-gray-500 font-medium">No files selected yet.</p>
+                        <p className="text-gray-400 mt-2">Start by uploading some study materials above!</p>
                     </div>
                 )}
 
                 {/* Processing Status */}
-                {Object.entries(generationStatus).map(([fileId, status]) => {
-                    const file = uploadedFiles?.find(f => f.id === fileId);
-                    return (
-                        <div key={`status-${fileId}`} className="bg-white rounded-lg shadow-md p-6 mb-4">
-                            <h3 className="font-semibold mb-2">
-                                {file?.name || 'File'}
-                            </h3>
-                            <div className="text-sm text-gray-600 mb-2">{status.message}</div>
+                <div className="max-w-4xl mx-auto mt-8 space-y-6">
+                    {Object.entries(generationStatus).map(([fileId, status]) => {
+                        const file = uploadedFiles?.find(f => f.id === fileId);
+                        return (
+                            <div key={`status-${fileId}`} className="bg-white rounded-3xl shadow-lg border border-gray-100 p-8 transition-all duration-300 hover:shadow-xl">
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl">
+                                        {status.status === 'completed' ? '✅' : status.status === 'error' ? '❌' : '⚙️'}
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-xl text-gray-900">
+                                            {file?.name || 'File'}
+                                        </h3>
+                                        <div className="text-sm font-medium text-gray-500 mt-1">{status.message}</div>
+                                    </div>
+                                </div>
 
                             {chunkStatus[fileId] && (
                                 <div className="mb-4">
@@ -607,37 +616,24 @@ export default function FileUploadPage() {
                                             }}
                                         />
                                     </div>
-                                    <div className="text-xs text-gray-500 mt-1">
-                                        {chunkStatus[fileId].processedChunks} of {chunkStatus[fileId].totalChunks} chunks processed
+                                    <div className="text-sm font-medium text-gray-500 mt-3 flex justify-between items-center">
+                                        <span>Processing chunks...</span>
+                                        <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs">
+                                            {chunkStatus[fileId].processedChunks} / {chunkStatus[fileId].totalChunks}
+                                        </span>
                                     </div>
-                                </div>
-                            )}
-
-                            {status.status === 'completed' && (
-                                <div className="mt-4">
-                                    <button
-                                        onClick={() => {
-                                            const flashcards = Array.isArray(status.result) ? status.result : [];
-                                            setSelectedFlashcards(flashcards);
-                                            setSummaries(status.summaries || []);
-                                            setCurrentCard(0);
-                                            setIsFlipped(false);
-                                        }}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                                    >
-                                        Study Flashcards
-                                    </button>
                                 </div>
                             )}
                         </div>
                     );
                 })}
+                </div>
 
                 {/* Flashcard Modal */}
                 {selectedFlashcards && selectedFlashcards.length > 0 && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-                        <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full flashcard-modal">
-                            <div className="flashcard-modal-content">
+                    <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                        <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full flashcard-modal overflow-hidden border border-gray-100">
+                            <div className="flashcard-modal-content p-8 relative">
                                 {/* Close Button */}
                                 <button
                                     onClick={() => {
@@ -645,46 +641,66 @@ export default function FileUploadPage() {
                                         setCurrentCard(0);
                                         setIsFlipped(false);
                                     }}
-                                    className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                                    className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors z-10"
                                 >
                                     <X className="w-6 h-6" />
                                 </button>
 
                                 {/* Summary Section */}
-                                <div className="mb-8">
-                                    <h3 className="font-bold text-xl mb-3">Summary</h3>
-                                    <div className="bg-gray-50 rounded-lg p-4 text-gray-700">
-                                        {summaries && summaries[currentChunkIndex] || 'No summary available'}
-                                    </div>
+                                <div className="mb-10">
+                                    <button
+                                        onClick={() => setIsSummaryOpen(!isSummaryOpen)}
+                                        className="w-full flex items-center justify-between text-left group mb-4"
+                                    >
+                                        <h3 className="font-bold text-2xl text-gray-900 flex items-center gap-2">
+                                            <span className="text-blue-600">📝</span> Document Summary
+                                        </h3>
+                                        <span className={`p-2 rounded-full hover:bg-gray-100 transition-colors ${isSummaryOpen ? 'bg-gray-100' : ''}`}>
+                                            {isSummaryOpen ? <ChevronUp className="w-6 h-6 text-gray-500" /> : <ChevronDown className="w-6 h-6 text-gray-500" />}
+                                        </span>
+                                    </button>
+                                    
+                                    {isSummaryOpen && (
+                                        <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-6 text-gray-700 leading-relaxed shadow-inner animate-in fade-in slide-in-from-top-2">
+                                            {summaries && summaries.length > 0 ? summaries.join('\n\n') : 'No summary available'}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Flashcard Section */}
-                                <div className="flex-1 min-h-[400px] flex flex-col">
-                                    <h3 className="font-bold text-xl mb-4">Flashcard {currentCard + 1} of {selectedFlashcards.length}</h3>
-                                    <div className="flashcard-container flex-1">
+                                <div className="flex-1 min-h-[450px] flex flex-col">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h3 className="font-bold text-2xl text-gray-900 flex items-center gap-2">
+                                            <span className="text-indigo-600">🎴</span> Flashcards
+                                        </h3>
+                                        <span className="px-4 py-1.5 bg-indigo-100 text-indigo-700 font-semibold rounded-full text-sm">
+                                            {currentCard + 1} / {selectedFlashcards.length}
+                                        </span>
+                                    </div>
+                                    <div className="flashcard-container flex-1 relative perspective-1000">
                                         <div
                                             className={`flashcard ${isFlipped ? 'flipped' : ''}`}
                                             onClick={() => setIsFlipped(!isFlipped)}
                                         >
                                             {/* Front */}
-                                            <div className="flashcard-front bg-white border-2 border-blue-200 rounded-lg">
-                                                <div className="flashcard-content">
-                                                    <div className="text-xl text-gray-800">
+                                            <div className="flashcard-front bg-white border border-gray-200 shadow-lg rounded-2xl cursor-pointer hover:shadow-xl transition-shadow duration-300">
+                                                <div className="flashcard-content flex flex-col items-center justify-center h-full p-8">
+                                                    <div className="text-2xl font-medium text-gray-800 text-center leading-relaxed">
                                                         {selectedFlashcards[currentCard]?.front || 'No question available'}
                                                     </div>
                                                 </div>
                                             </div>
 
                                             {/* Back */}
-                                            <div className="flashcard-back bg-blue-50 border-2 border-blue-200 rounded-lg">
-                                                <div className="flashcard-content">
-                                                    <div className="text-xl text-gray-800 mb-4">
+                                            <div className="flashcard-back bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 shadow-lg rounded-2xl cursor-pointer">
+                                                <div className="flashcard-content flex flex-col items-center justify-center h-full p-8">
+                                                    <div className="text-xl text-gray-800 mb-6 text-center leading-relaxed">
                                                         {selectedFlashcards[currentCard]?.back || 'No answer available'}
                                                     </div>
                                                     {selectedFlashcards[currentCard]?.summary && (
-                                                        <div className="mt-4 pt-4 border-t border-blue-200">
-                                                            <h4 className="text-sm font-semibold text-gray-600 mb-2">Additional Context:</h4>
-                                                            <div className="text-sm text-gray-700">
+                                                        <div className="mt-auto pt-6 border-t border-blue-200/50 w-full text-left">
+                                                            <h4 className="text-sm font-bold text-indigo-600 mb-2 uppercase tracking-wider">Additional Context</h4>
+                                                            <div className="text-sm text-gray-700 leading-relaxed">
                                                                 {selectedFlashcards[currentCard].summary}
                                                             </div>
                                                         </div>
@@ -695,33 +711,33 @@ export default function FileUploadPage() {
                                     </div>
 
                                     {/* Navigation */}
-                                    <div className="flashcard-navigation">
-                                        <div className="flex items-center justify-between">
+                                    <div className="flashcard-navigation mt-8">
+                                        <div className="flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-100">
                                             <button
                                                 onClick={() => {
                                                     setIsFlipped(false);
                                                     prevCard();
                                                 }}
                                                 disabled={currentCard === 0}
-                                                className="px-6 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
+                                                className="px-6 py-3 bg-white text-gray-700 font-medium rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 shadow-sm border border-gray-200 flex items-center gap-2"
                                             >
-                                                ← Previous
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
+                                                Previous
                                             </button>
-                                            <button
-                                                onClick={() => setIsFlipped(!isFlipped)}
-                                                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                                            >
-                                                {isFlipped ? 'Show Question' : 'Show Answer'}
-                                            </button>
+                                            <div className="text-sm font-medium text-gray-500 flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
+                                                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                                                Click card to flip
+                                            </div>
                                             <button
                                                 onClick={() => {
                                                     setIsFlipped(false);
                                                     nextCard();
                                                 }}
                                                 disabled={currentCard === selectedFlashcards.length - 1}
-                                                className="px-6 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
+                                                className="px-6 py-3 bg-gray-900 text-white font-medium rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-800 transition-all duration-200 shadow-md flex items-center gap-2"
                                             >
-                                                Next →
+                                                Next
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
                                             </button>
                                         </div>
                                     </div>
