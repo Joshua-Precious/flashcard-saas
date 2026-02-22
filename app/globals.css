@@ -155,8 +155,8 @@
 /* Flashcard specific styles */
 .flashcard-container {
     perspective: 1000px;
-    width: 100%;
-    height: 100%;
+    /* width: 100%; removed to let parent control */
+    /* height: 100%; removed to let parent control */
     position: relative;
 }
 
@@ -165,7 +165,7 @@
     width: 100%;
     height: 100%;
     text-align: center;
-    transition: transform 0.8s;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     transform-style: preserve-3d;
 }
 
@@ -178,12 +178,11 @@
     position: absolute;
     width: 100%;
     height: 100%;
-    backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
+    backface-visibility: hidden;
+    /* padding: 2rem; removed, handled by utility classes */
+    top: 0;
+    left: 0;
 }
 
 .flashcard-back {

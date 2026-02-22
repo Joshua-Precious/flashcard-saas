@@ -347,31 +347,32 @@ export default function FileUploadPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
             {/* Back Button */}
-            <div className="absolute top-6 left-6">
+            <div className="absolute top-4 left-4 md:top-6 md:left-6 z-10">
                 <a
                     href="/"
-                    className="px-5 py-2.5 bg-white text-gray-700 font-medium rounded-full shadow-sm hover:shadow-md hover:bg-gray-50 transition-all duration-200 flex items-center space-x-2 border border-gray-200"
+                    className="px-3 py-2 md:px-5 md:py-2.5 bg-white text-gray-700 font-medium rounded-full shadow-sm hover:shadow-md hover:bg-gray-50 transition-all duration-200 flex items-center space-x-2 border border-gray-200 text-sm md:text-base"
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                    <span>Back to Home</span>
+                    <span className="hidden md:inline">Back to Home</span>
+                    <span className="md:hidden">Back</span>
                 </a>
             </div>
 
-            <div className="container mx-auto px-4 py-16">
+            <div className="container mx-auto px-4 py-16 md:py-16">
                 {/* Header */}
-                <div className="text-center mb-16">
-                    <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-6 tracking-tight">
+                <div className="text-center mb-10 md:mb-16 mt-8 md:mt-0">
+                    <h1 className="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-4 md:mb-6 tracking-tight">
                         Study Buddy
                     </h1>
-                    <p className="text-xl text-gray-700 max-w-2xl mx-auto leading-relaxed">
+                    <p className="text-lg md:text-xl text-gray-700 max-w-2xl mx-auto leading-relaxed px-2">
                         Upload your study materials to instantly generate AI-powered flashcards and comprehensive summaries.
                     </p>
                 </div>
 
                 {/* Upload Area */}
-                <div className="max-w-4xl mx-auto mb-12">
+                <div className="max-w-4xl mx-auto mb-10 md:mb-12">
                     <div
-                        className={`relative border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 bg-white shadow-sm hover:shadow-md ${
+                        className={`relative border-2 border-dashed rounded-3xl p-6 md:p-12 text-center transition-all duration-300 bg-white shadow-sm hover:shadow-md ${
                             dragActive
                                 ? 'border-blue-500 bg-blue-50/50 scale-[1.02]'
                                 : 'border-gray-200 hover:border-blue-400'
@@ -423,32 +424,32 @@ export default function FileUploadPage() {
 
                 {/* Uploaded Files Container */}
                 {uploadedFiles.length > 0 && (
-                    <div className="max-w-4xl mx-auto mt-16">
+                    <div className="max-w-4xl mx-auto mt-12 md:mt-16">
                         <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-                            <div className="px-8 py-6 border-b border-gray-100 bg-gray-50/50">
-                                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                            <div className="px-6 md:px-8 py-6 border-b border-gray-100 bg-gray-50/50">
+                                <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-3">
                                     <span className="text-blue-600">📚</span> Your Study Materials
                                 </h2>
                             </div>
                             <div className="divide-y divide-gray-100">
                                 {uploadedFiles.map((file) => (
-                                    <div key={`uploaded-${file.id}`} className="p-6 hover:bg-gray-50/80 transition-all duration-200 group">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center space-x-5">
-                                                <div className="w-14 h-14 bg-white shadow-sm border border-gray-100 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                                    <div key={`uploaded-${file.id}`} className="p-4 md:p-6 hover:bg-gray-50/80 transition-all duration-200 group">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0">
+                                            <div className="flex items-start md:items-center space-x-4 md:space-x-5">
+                                                <div className="w-12 h-12 md:w-14 md:h-14 flex-shrink-0 bg-white shadow-sm border border-gray-100 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
                                                     {getFileIcon(file.type)}
                                                 </div>
-                                                <div>
-                                                    <h3 className="text-lg font-bold text-gray-900 mb-1">
+                                                <div className="min-w-0">
+                                                    <h3 className="text-base md:text-lg font-bold text-gray-900 mb-1 truncate max-w-[200px] md:max-w-none">
                                                         {file.name}
                                                     </h3>
-                                                    <div className="flex items-center gap-3 text-sm font-medium text-gray-500">
+                                                    <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs md:text-sm font-medium text-gray-500">
                                                         <span className="bg-gray-100 px-2.5 py-1 rounded-md">{formatFileSize(file.size)}</span>
                                                         <span>•</span>
                                                         <span>Uploaded {formatDate(file.uploadedAt)}</span>
                                                     </div>
                                                     {generationStatus[file.id] && (
-                                                        <div className="mt-1">
+                                                        <div className="mt-2">
                                                             <p className={`text-sm ${
                                                                 generationStatus[file.id].status === 'completed' ? 'text-green-500' :
                                                                 generationStatus[file.id].status === 'error' ? 'text-red-500' :
@@ -457,8 +458,8 @@ export default function FileUploadPage() {
                                                                 {generationStatus[file.id].message}
                                                             </p>
                                                             {generationStatus[file.id].status === 'completed' && generationStatus[file.id].result && (
-                                                                <div className="mt-2">
-                                                                    <p className="text-sm text-gray-600">
+                                                                <div className="mt-1">
+                                                                    <p className="text-xs md:text-sm text-gray-600">
                                                                         {Array.isArray(generationStatus[file.id].result) ? generationStatus[file.id].result!.length : 0} flashcards created
                                                                     </p>
                                                                 </div>
@@ -467,19 +468,19 @@ export default function FileUploadPage() {
                                                     )}
                                                 </div>
                                             </div>
-                                            <div className="flex items-center space-x-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                            <div className="flex items-center space-x-2 md:space-x-3 w-full md:w-auto justify-end mt-2 md:mt-0 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                                 <a
                                                     href={file.url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="px-4 py-2 text-sm font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-all duration-200 border border-transparent hover:border-blue-100"
+                                                    className="flex-1 md:flex-none text-center px-4 py-2 text-xs md:text-sm font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-all duration-200 border border-transparent hover:border-blue-100"
                                                 >
                                                     View File
                                                 </a>
                                                 {!generationStatus[file.id] && (
                                                     <button
                                                         onClick={() => generateFromFile(file.id, file.docId)}
-                                                        className="px-5 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2"
+                                                        className="flex-1 md:flex-none justify-center px-4 py-2 md:px-5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                                                         Process
@@ -494,7 +495,7 @@ export default function FileUploadPage() {
                                                             setCurrentCard(0);
                                                             setIsFlipped(false);
                                                         }}
-                                                        className="px-5 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 ml-2"
+                                                        className="flex-1 md:flex-none justify-center px-4 py-2 md:px-5 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 md:ml-2"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                                                         Study
@@ -511,13 +512,13 @@ export default function FileUploadPage() {
 
                 {/* Current Upload List */}
                 {files.length > 0 && (
-                    <div className="max-w-4xl mx-auto mt-12">
+                    <div className="max-w-4xl mx-auto mt-10 md:mt-12">
                         <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
-                            <div className="px-8 py-6 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                            <div className="px-6 md:px-8 py-5 md:py-6 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row items-center justify-between gap-4">
                                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
                                     <span className="text-indigo-600">📤</span> Files to Upload ({files.length})
                                 </h2>
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto justify-end">
                                     <button
                                         onClick={clearAllFiles}
                                         className="text-sm font-semibold text-gray-500 hover:text-red-600 transition-colors px-3 py-2 rounded-lg hover:bg-red-50"
@@ -526,7 +527,7 @@ export default function FileUploadPage() {
                                     </button>
                                     <button
                                         onClick={uploadFiles}
-                                        className="px-6 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2"
+                                        className="px-5 py-2.5 md:px-6 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2"
                                     >
                                         <Upload className="w-4 h-4" />
                                         Upload Files
@@ -536,8 +537,8 @@ export default function FileUploadPage() {
 
                             <div className="divide-y divide-gray-100">
                                 {files.map((fileObj) => (
-                                    <div key={`file-${fileObj.id}`} className="px-8 py-5 hover:bg-gray-50/80 transition-all duration-200 group">
-                                        <div className="flex items-center space-x-5">
+                                    <div key={`file-${fileObj.id}`} className="px-6 md:px-8 py-5 hover:bg-gray-50/80 transition-all duration-200 group">
+                                        <div className="flex items-center space-x-4 md:space-x-5">
                                             <div className="w-12 h-12 bg-white shadow-sm border border-gray-100 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
                                                 {getFileIcon(fileObj.type)}
                                             </div>
@@ -546,10 +547,10 @@ export default function FileUploadPage() {
                                                 <h3 className="text-base font-bold text-gray-900 truncate mb-1">
                                                     {fileObj.name}
                                                 </h3>
-                                                <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
+                                                <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm font-medium text-gray-500">
                                                     <span className="bg-gray-100 px-2 py-0.5 rounded">{formatFileSize(fileObj.size)}</span>
                                                     <span>•</span>
-                                                    <span className="truncate">{fileObj.type || 'Unknown type'}</span>
+                                                    <span className="truncate max-w-[100px] md:max-w-none">{fileObj.type || 'Unknown type'}</span>
                                                 </div>
                                                 {uploadStatus[fileObj.id] && (
                                                     <p className={`text-sm ${
@@ -566,7 +567,7 @@ export default function FileUploadPage() {
 
                                             <button
                                                 onClick={() => removeFile(fileObj.id)}
-                                                className="flex-shrink-0 p-2.5 text-gray-400 hover:text-red-500 transition-all duration-200 rounded-full hover:bg-red-50 opacity-0 group-hover:opacity-100"
+                                                className="flex-shrink-0 p-2.5 text-gray-400 hover:text-red-500 transition-all duration-200 rounded-full hover:bg-red-50 md:opacity-0 group-hover:opacity-100 opacity-100"
                                                 title="Remove file"
                                             >
                                                 <X className="w-5 h-5" />
@@ -589,17 +590,17 @@ export default function FileUploadPage() {
                 )}
 
                 {/* Processing Status */}
-                <div className="max-w-4xl mx-auto mt-8 space-y-6">
+                <div className="max-w-4xl mx-auto mt-8 space-y-4 md:space-y-6">
                     {Object.entries(generationStatus).map(([fileId, status]) => {
                         const file = uploadedFiles?.find(f => f.id === fileId);
                         return (
-                            <div key={`status-${fileId}`} className="bg-white rounded-3xl shadow-lg border border-gray-100 p-8 transition-all duration-300 hover:shadow-xl">
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl">
+                            <div key={`status-${fileId}`} className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8 transition-all duration-300 hover:shadow-xl">
+                                <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
+                                    <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
                                         {status.status === 'completed' ? '✅' : status.status === 'error' ? '❌' : '⚙️'}
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-xl text-gray-900">
+                                        <h3 className="font-bold text-lg md:text-xl text-gray-900 break-all md:break-normal">
                                             {file?.name || 'File'}
                                         </h3>
                                         <div className="text-sm font-medium text-gray-500 mt-1">{status.message}</div>
@@ -632,8 +633,8 @@ export default function FileUploadPage() {
                 {/* Flashcard Modal */}
                 {selectedFlashcards && selectedFlashcards.length > 0 && (
                     <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                        <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full flashcard-modal overflow-hidden border border-gray-100">
-                            <div className="flashcard-modal-content p-8 relative">
+                        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl flashcard-modal overflow-hidden border border-gray-100 flex flex-col max-h-[90vh]">
+                            <div className="flashcard-modal-content p-4 md:p-8 relative flex flex-col h-full overflow-y-auto">
                                 {/* Close Button */}
                                 <button
                                     onClick={() => {
@@ -641,18 +642,18 @@ export default function FileUploadPage() {
                                         setCurrentCard(0);
                                         setIsFlipped(false);
                                     }}
-                                    className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors z-10"
+                                    className="absolute top-4 right-4 md:top-6 md:right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors z-20"
                                 >
                                     <X className="w-6 h-6" />
                                 </button>
 
                                 {/* Summary Section */}
-                                <div className="mb-10">
+                                <div className="mb-6 md:mb-10 flex-shrink-0">
                                     <button
                                         onClick={() => setIsSummaryOpen(!isSummaryOpen)}
-                                        className="w-full flex items-center justify-between text-left group mb-4"
+                                        className="w-full flex items-center justify-between text-left group mb-4 pr-12"
                                     >
-                                        <h3 className="font-bold text-2xl text-gray-900 flex items-center gap-2">
+                                        <h3 className="font-bold text-xl md:text-2xl text-gray-900 flex items-center gap-2">
                                             <span className="text-blue-600">📝</span> Document Summary
                                         </h3>
                                         <span className={`p-2 rounded-full hover:bg-gray-100 transition-colors ${isSummaryOpen ? 'bg-gray-100' : ''}`}>
@@ -661,46 +662,46 @@ export default function FileUploadPage() {
                                     </button>
                                     
                                     {isSummaryOpen && (
-                                        <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-6 text-gray-700 leading-relaxed shadow-inner animate-in fade-in slide-in-from-top-2">
+                                        <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 md:p-6 text-sm md:text-base text-gray-700 leading-relaxed shadow-inner animate-in fade-in slide-in-from-top-2 max-h-60 overflow-y-auto">
                                             {summaries && summaries.length > 0 ? summaries.join('\n\n') : 'No summary available'}
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Flashcard Section */}
-                                <div className="flex-1 min-h-[450px] flex flex-col">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h3 className="font-bold text-2xl text-gray-900 flex items-center gap-2">
+                                <div className="flex-1 flex flex-col min-h-0">
+                                    <div className="flex items-center justify-between mb-4 md:mb-6 flex-shrink-0">
+                                        <h3 className="font-bold text-xl md:text-2xl text-gray-900 flex items-center gap-2">
                                             <span className="text-indigo-600">🎴</span> Flashcards
                                         </h3>
-                                        <span className="px-4 py-1.5 bg-indigo-100 text-indigo-700 font-semibold rounded-full text-sm">
+                                        <span className="px-3 py-1 md:px-4 md:py-1.5 bg-indigo-100 text-indigo-700 font-semibold rounded-full text-xs md:text-sm">
                                             {currentCard + 1} / {selectedFlashcards.length}
                                         </span>
                                     </div>
-                                    <div className="flashcard-container flex-1 relative perspective-1000">
+                                    <div className="flashcard-container flex-1 relative perspective-1000 min-h-[300px] md:min-h-[400px]">
                                         <div
-                                            className={`flashcard ${isFlipped ? 'flipped' : ''}`}
+                                            className={`flashcard ${isFlipped ? 'flipped' : ''} w-full h-full`}
                                             onClick={() => setIsFlipped(!isFlipped)}
                                         >
                                             {/* Front */}
-                                            <div className="flashcard-front bg-white border border-gray-200 shadow-lg rounded-2xl cursor-pointer hover:shadow-xl transition-shadow duration-300">
-                                                <div className="flashcard-content flex flex-col items-center justify-center h-full p-8">
-                                                    <div className="text-2xl font-medium text-gray-800 text-center leading-relaxed">
+                                            <div className="flashcard-front bg-white border border-gray-200 shadow-lg rounded-2xl cursor-pointer hover:shadow-xl transition-shadow duration-300 absolute inset-0 backface-hidden">
+                                                <div className="flashcard-content flex flex-col items-center justify-center h-full p-6 md:p-8 overflow-y-auto">
+                                                    <div className="text-lg md:text-2xl font-medium text-gray-800 text-center leading-relaxed">
                                                         {selectedFlashcards[currentCard]?.front || 'No question available'}
                                                     </div>
                                                 </div>
                                             </div>
 
                                             {/* Back */}
-                                            <div className="flashcard-back bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 shadow-lg rounded-2xl cursor-pointer">
-                                                <div className="flashcard-content flex flex-col items-center justify-center h-full p-8">
-                                                    <div className="text-xl text-gray-800 mb-6 text-center leading-relaxed">
+                                            <div className="flashcard-back bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 shadow-lg rounded-2xl cursor-pointer absolute inset-0 backface-hidden rotate-y-180">
+                                                <div className="flashcard-content flex flex-col items-center justify-center h-full p-6 md:p-8 overflow-y-auto">
+                                                    <div className="text-base md:text-xl text-gray-800 mb-6 text-center leading-relaxed">
                                                         {selectedFlashcards[currentCard]?.back || 'No answer available'}
                                                     </div>
                                                     {selectedFlashcards[currentCard]?.summary && (
                                                         <div className="mt-auto pt-6 border-t border-blue-200/50 w-full text-left">
-                                                            <h4 className="text-sm font-bold text-indigo-600 mb-2 uppercase tracking-wider">Additional Context</h4>
-                                                            <div className="text-sm text-gray-700 leading-relaxed">
+                                                            <h4 className="text-xs md:text-sm font-bold text-indigo-600 mb-2 uppercase tracking-wider">Additional Context</h4>
+                                                            <div className="text-xs md:text-sm text-gray-700 leading-relaxed">
                                                                 {selectedFlashcards[currentCard].summary}
                                                             </div>
                                                         </div>
@@ -711,33 +712,39 @@ export default function FileUploadPage() {
                                     </div>
 
                                     {/* Navigation */}
-                                    <div className="flashcard-navigation mt-8">
-                                        <div className="flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                    <div className="flashcard-navigation mt-6 md:mt-8 flex-shrink-0">
+                                        <div className="flex items-center justify-between bg-gray-50 p-2 md:p-4 rounded-2xl border border-gray-100 gap-2">
                                             <button
-                                                onClick={() => {
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
                                                     setIsFlipped(false);
                                                     prevCard();
                                                 }}
                                                 disabled={currentCard === 0}
-                                                className="px-6 py-3 bg-white text-gray-700 font-medium rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 shadow-sm border border-gray-200 flex items-center gap-2"
+                                                className="flex-1 px-4 py-3 bg-white text-gray-700 font-medium rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 shadow-sm border border-gray-200 flex items-center justify-center gap-2 text-sm md:text-base"
                                             >
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
-                                                Previous
+                                                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
+                                                <span className="hidden sm:inline">Previous</span>
                                             </button>
-                                            <div className="text-sm font-medium text-gray-500 flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
-                                                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
-                                                Click card to flip
+                                            
+                                            <div className="text-xs md:text-sm font-medium text-gray-500 flex items-center gap-1 md:gap-2 bg-white px-3 py-2 rounded-full shadow-sm border border-gray-100 whitespace-nowrap">
+                                                <svg className="w-3 h-3 md:w-4 md:h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                                                <span className="hidden sm:inline">Click card to flip</span>
+                                                <span className="sm:hidden">Tap to flip</span>
                                             </div>
+                                            
                                             <button
-                                                onClick={() => {
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
                                                     setIsFlipped(false);
                                                     nextCard();
                                                 }}
                                                 disabled={currentCard === selectedFlashcards.length - 1}
-                                                className="px-6 py-3 bg-gray-900 text-white font-medium rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-800 transition-all duration-200 shadow-md flex items-center gap-2"
+                                                className="flex-1 px-4 py-3 bg-gray-900 text-white font-medium rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-800 transition-all duration-200 shadow-md flex items-center justify-center gap-2 text-sm md:text-base"
                                             >
-                                                Next
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                                                <span className="hidden sm:inline">Next</span>
+                                                <span className="sm:hidden">Next</span>
+                                                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
                                             </button>
                                         </div>
                                     </div>
